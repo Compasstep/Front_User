@@ -36,6 +36,7 @@ npm install styled-components
 ```
 ```bash
 6. 시각화 차트
+npm install react-chartjs-2 chart.js
 npm install chartjs-plugin-datalabels
 ```
 ### 3. 실행 방법
