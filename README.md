@@ -38,6 +38,10 @@ npm install styled-components
 6. 시각화 차트
 npm install chartjs-plugin-datalabels
 ```
+```bash
+7. 글씨체 폰트
+npm i @fontsource/anton @fontsource/quicksand @fontsource/noto-sans-kr @fontsource/black-han-sans
+```
 ### 3. 실행 방법
 ```bash
 npm run dev
