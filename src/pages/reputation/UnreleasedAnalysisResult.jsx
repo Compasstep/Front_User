@@ -4,9 +4,10 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Doughnut, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-import WordCloud from '../../components/WordCloudCompat.jsx';
+//import WordCloud from 'react-wordcloud';
 import ChartBox from '../../components/ChartBox.jsx';
 import { mockDoughnutData, mockBarData, mockWordCloudData } from '../../data/mockReputationData.js';
+import WordCloudCompat from '../../components/WordCloudCompat.jsx';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
 
@@ -87,7 +88,7 @@ function UnreleasedAnalysisResult() {
         <RightColumn>
           <ChartBox title="Top Keywords (Word Cloud)">
             <WordCloudWrapper>
-              <WordCloud
+              <WordCloudCompat
                 words={mockWordCloudData}
                 options={wordCloudOptions}
                 width={600}

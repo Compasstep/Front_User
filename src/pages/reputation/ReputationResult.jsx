@@ -5,7 +5,7 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 //import WordCloud from 'react-wordcloud';
-
+import WordCloudCompat from "../../components/WordCloudCompat";
 import ChartBox from '../../components/ChartBox.jsx';
 import { mockDoughnutData, mockBarData, mockWordCloudData } from '../../data/mockReputationData.js';
 
@@ -114,7 +114,7 @@ function ReputationResult() {
         <RightColumn>
           <ChartBox title="Top Keywords (Word Cloud)">
             <WordCloudWrapper>
-              <WordCloud
+              <WordCloudCompat
                 words={mockWordCloudData}
                 options={wordCloudOptions}
               />
