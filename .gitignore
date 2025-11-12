@@ -23,4 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-\.env
+# Env files (local secrets은 커밋하지 않습니다.)
+.env
+.env.*

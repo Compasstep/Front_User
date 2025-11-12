@@ -4,7 +4,7 @@ import { Element, scroller } from 'react-scroll';
 function Home() {
   const handleScrollDown = () => {
     scroller.scrollTo('introSection', {
-      duration: 1500, // 스크롤 지속 시간 (밀리초) 숫자 클수록 느려짐
+      duration: 150000, // 스크롤 지속 시간 (밀리초) 숫자 클수록 느려짐
       delay: 0, 
       smooth: 'easeInOutQuart', // 부드러운 스크롤 애니메이션 종류
       offset: -70, // 헤더 높이만큼 덜 스크롤하여 가려지지 않게 함

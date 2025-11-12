@@ -4,7 +4,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Doughnut, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-import WordCloud from 'react-wordcloud';
+//import WordCloud from 'react-wordcloud';
 
 import ChartBox from '../../components/ChartBox.jsx';
 import { mockDoughnutData, mockBarData, mockWordCloudData } from '../../data/mockReputationData.js';
