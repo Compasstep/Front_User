@@ -1,0 +1,449 @@
+// src/api/client.js
+import axios from 'axios';
+import useUserStore from '../store/userStore';
+
+// 선택 콜백(옵션)
+let onUnauthorized = null;
+let onCsrfToken = null;
+export const setOnUnauthorized = (fn) => { onUnauthorized = fn; };
+export const setOnCsrfToken = (fn) => { onCsrfToken = fn; };
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  withCredentials: true,
+  timeout: 150000,
+});
+
+// ★ 백엔드 네이밍과 통일
+api.defaults.xsrfCookieName = 'csrf_token';
+api.defaults.xsrfHeaderName = 'X-CSRF-Token';
+
+function readCookie(name) {
+  const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return m ? decodeURIComponent(m.pop()) : '';
+}
+
+// 취소 에러 판별(axios 버전/환경별 다양성 고려)
+function isCanceled(error) {
+  return (
+    axios.isCancel?.(error) ||
+    error?.code === 'ERR_CANCELED' ||
+    error?.message === 'canceled' ||
+    error?.name === 'CanceledError' ||
+    error?.cause?.name === 'CanceledError' ||
+    error?.config?.signal?.aborted === true
+  );
+}
+
+api.interceptors.request.use(
+  (config) => {
+    // 필요 시 Bearer
+    const accessToken = useUserStore.getState().accessToken;
+    if (accessToken) config.headers['Authorization'] = `Bearer ${accessToken}`;
+
+    // CSRF
+    const csrf =
+      readCookie('csrf_token') ||
+      sessionStorage.getItem('csrfToken') ||
+      localStorage.getItem('csrfToken');
+    if (csrf) config.headers['X-CSRF-Token'] = csrf;
+
+    config.headers['X-Requested-With'] = 'XMLHttpRequest';
+    if (!config.headers['Accept']) config.headers['Accept'] = 'application/json';
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (res) => {
+    // 서버가 헤더/바디로 CSRF 토큰을 줄 수도 있음
+    const h = res.headers || {};
+    const token =
+      h['x-csrf-token'] ||
+      h['x-xsrf-token'] ||
+      res.data?.csrfToken ||
+      res.data?.result?.csrfToken;
+    if (token && typeof onCsrfToken === 'function') onCsrfToken(token);
+    return res;
+  },
+  async (error) => {
+    // ✅ 취소는 그대로 throw (포장 금지: 컴포넌트에서 axios.isCancel로 정확히 잡게 함)
+    if (isCanceled(error)) {
+      return Promise.reject(error);
+    }
+
+    // 네트워크/무응답
+    if (!error?.response) {
+      error._wrapped = 'no-response';
+      return Promise.reject(error);
+    }
+
+    const { status } = error.response;
+    const rawUrl = (error.config?.url || '').toString();
+    const isAuthEndpoint = rawUrl.includes('/user/auth/');
+
+    if (status === 401) {
+      const message = error.response?.data?.message || '인증 필요';
+      if (!isAuthEndpoint && typeof onUnauthorized === 'function') {
+        onUnauthorized(error);
+      }
+      return Promise.reject({ status, message, data: error.response?.data });
+    }
+
+    const msg =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      (status >= 500 ? '서버 오류가 발생했습니다.' : '요청을 처리할 수 없습니다.');
+    return Promise.reject({ status, message: msg, data: error.response?.data });
+  }
+);
+
+export default api;
+
+// src/pages/analysis/Released.jsx
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
+import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import api from '../../api/client';
+
+/** 백엔드 스펙: POST /api/user/analyze/youtube
+ *  payload: { songTitle, artistName }
+ *  response: { code, message, result: { summary: {...} } }
+ */
+const API_ENDPOINT = '/user/analyze/youtube';
+
+// 입력 전처리 유틸
+const MAX_ARTIST = 100;
+const MAX_TITLE  = 150;
+const removeEmoji = (s) => (s || '').replace(/[\p{Extended_Pictographic}]/gu, '');
+const normalizeQuotes = (s) =>
+  (s || '')
+    .replace(/[“”«»„‟]/g, '"')
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[`´ˊˋ]/g, "'");
+const sanitize = (s, max) => {
+  const nfc = (s || '').normalize('NFC');
+  const noEmoji = removeEmoji(nfc);
+  const q = normalizeQuotes(noEmoji);
+  const allowlisted = q.replace(/[^A-Za-z0-9가-힣\s\-\&\.\,\!\?\(\)\/:']/g, ' ');
+  const singleSpaced = allowlisted.replace(/\s+/g, ' ').trim();
+  return singleSpaced.slice(0, max);
+};
+
+function normalizeSummaryFromResponse(data) {
+  // 표준 구조: { result: { summary: {...} } }
+  if (data?.result?.summary) return data.result.summary;
+  if (data?.summary) return data.summary; // 방어
+  return null;
+}
+
+function Released() {
+  const [singer, setSinger] = useState('');
+  const [title, setTitle]   = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading
+  const submittingRef = useRef(false);
+  const navigate = useNavigate();
+
+  const handleAnalysis = async () => {
+    if (submittingRef.current) return;
+
+    const artistName = sanitize(singer, MAX_ARTIST);
+    const songTitle  = sanitize(title,  MAX_TITLE);
+
+    if (!artistName || !songTitle) {
+      alert('가수와 제목을 모두 입력해주세요.');
+      return;
+    }
+
+    try {
+      submittingRef.current = true;
+      setStatus('loading');
+
+      const { data } = await api.post(
+        API_ENDPOINT,
+        { songTitle, artistName },
+        { timeout: 120000, headers: { 'Content-Type': 'application/json' } }
+      );
+
+      const code = Number(data?.code ?? 0);
+      const summary = normalizeSummaryFromResponse(data);
+
+      if (code !== 200 || !summary) {
+        throw new Error(data?.message || '분석 결과가 비어있습니다.');
+      }
+
+      // 결과 저장 (결과 페이지에서 사용)
+      sessionStorage.setItem(
+        'reputation:last',
+        JSON.stringify({ summary, singer: artistName, title: songTitle })
+      );
+
+      // 쿼리와 state 모두 전달
+      navigate(
+        `/analysis/reputation/result?singer=${encodeURIComponent(artistName)}&title=${encodeURIComponent(songTitle)}`,
+        { state: { singer: artistName, title: songTitle, summary } }
+      );
+    } catch (err) {
+      const httpStatus = err?.status || err?.response?.status || 0;
+      const serverMsg  = err?.response?.data?.message;
+
+      let userMsg =
+        serverMsg ||
+        err?.message ||
+        '요청을 처리할 수 없습니다.';
+
+      if (httpStatus === 400 || httpStatus === 422) {
+        userMsg = '입력 형식이 올바르지 않습니다. 따옴표/이모지/특수문자를 줄이고 다시 시도해주세요.';
+      } else if (httpStatus === 500) {
+        userMsg = '분석 서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요. (FastAPI 오류)';
+      } else if (httpStatus === 429) {
+        userMsg = '분석 요청이 많습니다(한도/쿨다운). 잠시 후 다시 시도해주세요.';
+      } else if (httpStatus === 504) {
+        userMsg = '분석 서버 응답 지연입니다. 잠시 후 다시 시도해주세요.';
+      } else if (err?._wrapped === 'no-response') {
+        userMsg = '네트워크 오류 또는 서버 무응답입니다.';
+      }
+
+      alert(userMsg);
+    } finally {
+      submittingRef.current = false;
+      setStatus('idle');
+    }
+  };
+
+  if (status === 'loading') return <LoadingSpinner />;
+
+  return (
+    <Container>
+      <Content>
+        <Title>가수와 제목을 입력하고 평판을 확인하세요</Title>
+        <SearchWrapper>
+          <DecorativeImage src="/keyword.png" alt="decorative" />
+          <InputContainer>
+            <InputGroup>
+              <SearchInput
+                type="text"
+                placeholder="Singer"
+                value={singer}
+                onChange={(e) => setSinger(e.target.value)}
+                maxLength={MAX_ARTIST + 20}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </InputGroup>
+            <InputGroup>
+              <SearchInput
+                type="text"
+                placeholder="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAnalysis()}
+                maxLength={MAX_TITLE + 20}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </InputGroup>
+          </InputContainer>
+          <SearchButton onClick={handleAnalysis} aria-label="분석 실행">→</SearchButton>
+        </SearchWrapper>
+      </Content>
+    </Container>
+  );
+}
+
+/* ---- styled-components ---- */
+const fadeInDown = keyframes`
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+const fadeInUp = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const Container = styled.div`
+  height: 100vh;
+  display: flex; justify-content: center; align-items: center;
+  background-image: url('/background.png');
+  background-size: cover; background-position: center;
+`;
+const Content = styled.div`
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; z-index: 1;
+`;
+const Title = styled.h2`
+  font-family: 'Quicksand', sans-serif; color: #FACD66; font-size: 30px;
+  margin-bottom: 40px; animation: ${fadeInDown} 0.8s ease-out;
+`;
+const SearchWrapper = styled.div`
+  display: flex; flex-direction: row; align-items: center;
+  gap: 30px; animation: ${fadeInUp} 0.8s ease-out;
+`;
+const DecorativeImage = styled.img`
+  width: 300px; height: 300px; border-radius: 24px; object-fit: cover;
+  transition: transform 0.3s ease-in-out; &:hover { transform: scale(1.05); }
+`;
+const InputContainer = styled.div`
+  display: flex; flex-direction: column; gap: 20px;
+`;
+const InputGroup = styled.div`
+  display: flex; align-items: center;
+  background-color: rgba(40, 40, 40, 0.8);
+  border-radius: 50px; padding: 10px 25px; backdrop-filter: blur(5px);
+  transition: box-shadow 0.3s ease-in-out;
+  &:focus-within { box-shadow: 0 0 0 2px #FACD66; }
+`;
+const SearchInput = styled.input`
+  background: transparent; border: none; color: #fff; font-size: 18px;
+  width: 450px; outline: none; &::placeholder { color: #888; }
+`;
+const SearchButton = styled.button`
+  background: none; border: none; color: #fff; font-size: 30px;
+  cursor: pointer; padding-left: 15px; transition: color 0.3s ease-in-out;
+  &:hover { color: #FACD66; }
+`;
+
+export default Released;
+
+
+// src/pages/analysis/ReputationResult.jsx
+import { useLocation, useSearchParams } from 'react-router-dom';
+import styled from 'styled-components';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import { Doughnut, Bar } from 'react-chartjs-2';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+import WordCloud from '../../components/WordCloudCompat.jsx';
+import ChartBox from '../../components/ChartBox.jsx';
+import { mockDoughnutData, mockBarData, mockWordCloudData } from '../../data/mockReputationData.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
+
+// 유틸
+function toPercent(x) { return Math.round(Number(x ?? 0) * 100); }
+function prettifyEmotionKey(k) {
+  return ({
+    joy_happiness: 'Joy', caring_love: 'Love', admiration: 'Admiration',
+    gratitude: 'Gratitude', interest_curiosity: 'Curiosity', approval: 'Approval',
+    anger_annoyance: 'Anger', disgust: 'Disgust', sadness_grief: 'Sadness',
+    fear_nervousness: 'Fear', surprise: 'Surprise', realization: 'Realization',
+    relief: 'Relief', embarrassment: 'Embarrassment', confusion: 'Confusion',
+    disapproval: 'Disapproval', resolute: 'Resolute', arrogance: 'Arrogance',
+    neutral_misc: 'Neutral misc', curiosity: 'Curiosity',
+  }[k] || k);
+}
+function buildDoughnut(summary) {
+  if (!summary?.sentimentSummary) return mockDoughnutData;
+  const s = summary.sentimentSummary;
+  return {
+    labels: ['Positive', 'Negative', 'Neutral'],
+    datasets: [{ label: 'Sentiment', data: [toPercent(s.positive), toPercent(s.negative), toPercent(s.neutral)] }],
+  };
+}
+function buildBar(summary) {
+  if (!summary?.emotionDetails) return mockBarData;
+  const entries = Object.entries(summary.emotionDetails || {})
+    .filter(([k]) => k !== 'neutral_misc')
+    .map(([k, v]) => ({ label: prettifyEmotionKey(k), value: toPercent(v) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4);
+  return { labels: entries.map(e => e.label), datasets: [{ data: entries.map(e => e.value) }] };
+}
+function buildWordCloud(summary) {
+  const kws = Array.isArray(summary?.keywords) ? summary.keywords : null;
+  if (!kws) return mockWordCloudData;
+  const base = 100;
+  return kws.map((text, i) => ({ text, value: base - i * 3 })).filter(w => w.value > 10);
+}
+
+const wordCloudOptions = { fontFamily: 'Anton', fontSizes: [20, 80], padding: 1, rotations: 2, rotationAngles: [0, 90] };
+
+function ReputationResult() {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  const singer = searchParams.get('singer') || location.state?.singer || '';
+  const title  = searchParams.get('title')  || location.state?.title  || '';
+
+  // location.state 우선, 없으면 sessionStorage
+  const stateSummary = location.state?.summary ?? null;
+  const stored = !stateSummary ? JSON.parse(sessionStorage.getItem('reputation:last') || 'null') : null;
+  const summary = stateSummary || stored?.summary || null;
+
+  const doughnutData = buildDoughnut(summary);
+  const barData      = buildBar(summary);
+  const wcData       = buildWordCloud(summary);
+
+  const doughnutOptions = {
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: { color: '#fff', font: { size: 14 }, boxWidth: 15, usePointStyle: true, pointStyle: 'circle', padding: 20 },
+      },
+      datalabels: { color: '#fff', font: { size: 14, weight: 'bold' }, textStrokeColor: 'black', textStrokeWidth: 2, formatter: v => v },
+    },
+  };
+  const barOptions = {
+    indexAxis: 'y',
+    maintainAspectRatio: false,
+    layout: { padding: { right: 40 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true },
+      datalabels: { anchor: 'end', align: 'end', color: '#fff', font: { weight: 'bold', size: 14 }, formatter: v => `${v}%` },
+    },
+    scales: {
+      y: { ticks: { color: '#fff', font: { size: 14 } }, grid: { display: false }, border: { display: false } },
+      x: { max: 100, ticks: { display: false }, grid: { display: false }, border: { display: false } },
+    },
+  };
+
+  return (
+    <ResultContainer>
+      <ResultHeader>
+        <ResultTitle>음악 평판 분석</ResultTitle>
+        <ResultSubTitle>
+          {title && singer ? <>Analyzing "{title}" by {singer}</> : <>분석 결과</>}
+        </ResultSubTitle>
+      </ResultHeader>
+
+      <ChartGrid>
+        <LeftColumn>
+          <ChartBox title="Sentiment Analysis">
+            <Doughnut data={doughnutData} options={doughnutOptions} />
+          </ChartBox>
+          <ChartBox title="Detailed Emotion distribution">
+            <Bar data={barData} options={barOptions} />
+          </ChartBox>
+        </LeftColumn>
+        <RightColumn>
+          <ChartBox title="Top Keywords (Word Cloud)">
+            <WordCloudWrapper>
+              <WordCloud words={wcData} options={wordCloudOptions} width={600} height={600} />
+            </WordCloudWrapper>
+          </ChartBox>
+        </RightColumn>
+      </ChartGrid>
+    </ResultContainer>
+  );
+}
+
+/* ---- styled-components ---- */
+const ResultContainer = styled.div` padding: 20px; max-width: 1400px; margin: 0 auto; `;
+const ResultHeader = styled.div` background-color: #FACD66; color: #1D2123; padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center; `;
+const ResultTitle = styled.h1` font-family: 'Anton', sans-serif; margin: 0 0 10px 0; `;
+const ResultSubTitle = styled.p` font-family: 'Quicksand', sans-serif; font-size: 18px; margin: 0; `;
+const ChartGrid = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; `;
+const LeftColumn = styled.div` display: flex; flex-direction: column; gap: 20px; `;
+const RightColumn = styled.div`
+  & > div { height: calc(450px * 2 + 20px);
+    & > div { display: flex; align-items: center; justify-content: center; flex-grow: 1; position: relative; }
+  }
+`;
+const WordCloudWrapper = styled.div` width: 100%; aspect-ratio: 1 / 1; margin: auto; `;
+
+export default ReputationResult;
