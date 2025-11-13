@@ -13,58 +13,80 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState('');
   const btnMountedRef = useRef(false);
 
-  const handleLoginWithGoogleToken = useCallback(async (googleIdToken) => {
-    if (loading) return;
-    setLoading(true);
-    setErrorMsg('');
+  const LOGIN_URL = '/user/auth/login';
 
-    try {
-      const res = await api.post('/user/auth/login', { googleToken: googleIdToken }, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+  const handleLoginWithGoogleToken = useCallback(
+    async (googleIdToken) => {
+      if (loading) return;
+      setLoading(true);
+      setErrorMsg('');
 
-      // 캡처 기준 응답: { code: 200, message: "성공입니다.", result: { csrfToken: "..." } }
-      const data = res?.data || {};
-      const csrfToken =
-        data?.result?.csrfToken ||
-        data?.csrfToken ||
-        null;
+      try {
+        const res = await api.post(
+          LOGIN_URL,
+          {
+            googleToken: googleIdToken,
+            idToken: googleIdToken,   // ← 백엔드 DTO 맞추기
+          },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
 
-      if (csrfToken) {
-        sessionStorage.setItem('csrfToken', csrfToken);
-        localStorage.setItem('csrfToken', csrfToken);
+        const data = res?.data || {};
+        const csrfToken =
+          data?.result?.csrfToken ||
+          data?.csrfToken ||
+          null;
+
+        if (csrfToken) {
+          sessionStorage.setItem('csrfToken', csrfToken);
+          localStorage.setItem('csrfToken', csrfToken);
+        }
+
+        const accessToken =
+          data?.result?.accessToken || data?.accessToken || null;
+        const refreshToken =
+          data?.result?.refreshToken || data?.refreshToken || null;
+
+        setLoginState({
+          isLoggedIn: true,
+          csrfToken,
+          accessToken,
+          refreshToken,
+        });
+
+        navigate('/');
+      } catch (err) {
+        console.error('[LOGIN ERROR]', err);
+        setErrorMsg(err?.response?.data?.message || '로그인에 실패했습니다.');
+      } finally {
+        setLoading(false);
       }
-
-      // (옵션) 바디에 토큰이 있을 때만 저장
-      const accessToken =
-        data?.result?.accessToken || data?.accessToken || null;
-      const refreshToken =
-        data?.result?.refreshToken || data?.refreshToken || null;
-
-      setLoginState({ isLoggedIn: true, csrfToken, accessToken, refreshToken });
-      navigate('/');
-    } catch (err) {
-      console.error(err);
-      setErrorMsg(err?.response?.data?.message || '로그인에 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, navigate, setLoginState]);
+    },
+    [loading, navigate, setLoginState]
+  );
 
   useEffect(() => {
     const CLIENT_ID =
       import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-      document.querySelector('meta[name="google-signin-client_id"]')?.getAttribute('content') ||
+      document
+        .querySelector('meta[name="google-signin-client_id"]')
+        ?.getAttribute('content') ||
       '';
 
     function initGoogle() {
       if (!window.google?.accounts?.id) return;
-      if (!CLIENT_ID) { setErrorMsg('Google client_id가 설정되지 않았습니다.'); return; }
+      if (!CLIENT_ID) {
+        setErrorMsg('Google client_id가 설정되지 않았습니다.');
+        return;
+      }
 
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: ({ credential }) => {
-          if (!credential) { setErrorMsg('구글 토큰을 받지 못했습니다.'); return; }
+          if (!credential) {
+            setErrorMsg('구글 토큰을 받지 못했습니다.');
+            return;
+          }
           handleLoginWithGoogleToken(credential);
         },
         auto_select: false,
@@ -85,8 +107,9 @@ function Login() {
       }
     }
 
-    if (window.google?.accounts?.id) initGoogle();
-    else {
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
@@ -96,7 +119,9 @@ function Login() {
     }
 
     return () => {
-      try { window.google?.accounts?.id?.cancel(); } catch {}
+      try {
+        window.google?.accounts?.id?.cancel();
+      } catch {}
       btnMountedRef.current = false;
     };
   }, [handleLoginWithGoogleToken]);
@@ -105,15 +130,21 @@ function Login() {
     <LoginContainer>
       <Title>Compassstep</Title>
       <Subtitle>로그인</Subtitle>
+
       <GoogleLoginBox aria-live="polite">
         {loading ? '로그인 중...' : <div id="googleBtnContainer" />}
       </GoogleLoginBox>
-      {errorMsg && <p style={{ color: 'red', marginTop: 20, fontSize: 14 }}>{errorMsg}</p>}
+
+      {errorMsg && (
+        <ErrorText>{errorMsg}</ErrorText>
+      )}
     </LoginContainer>
   );
 }
 
-/* styles */
+/* ────────────────────────────────────────────────
+   styled-components (CSS)
+────────────────────────────────────────────────── */
 const LoginContainer = styled.div`
   display:flex;
   flex-direction:column;
@@ -122,15 +153,18 @@ const LoginContainer = styled.div`
   height: calc(100vh - 80px);
   text-align:center;
 `;
+
 const Title = styled.h1`
   font-size:48px;
   font-weight:bold;
   margin-bottom:10px;
 `;
+
 const Subtitle = styled.h2`
   font-size:24px;
   margin-bottom:40px;
 `;
+
 const GoogleLoginBox = styled.div`
   background-color:#1a73e8;
   color:#fff;
@@ -140,9 +174,18 @@ const GoogleLoginBox = styled.div`
   border-radius:8px;
   display:flex;
   align-items:center;
+  justify-content:center;
   gap:10px;
   min-height:54px;
-  &:hover{ background-color:#1a73e8; }
+  width:260px;
+  cursor:pointer;
+  &:hover { background-color:#1a73e8; }
+`;
+
+const ErrorText = styled.p`
+  color:red;
+  margin-top:20px;
+  font-size:14px;
 `;
 
 export default Login;

@@ -1,112 +1,85 @@
 // src/api/client.js
 import axios from 'axios';
+import useUserStore from '../store/userStore';
 
-// 선택 콜백
+// 선택 콜백(옵션)
 let onUnauthorized = null;
 let onCsrfToken = null;
 export const setOnUnauthorized = (fn) => { onUnauthorized = fn; };
-export const setOnCsrfToken   = (fn) => { onCsrfToken = fn; };
+export const setOnCsrfToken = (fn) => { onCsrfToken = fn; };
 
 // ─────────────────────────────────────────────────────────────
 // axios 인스턴스
 // ─────────────────────────────────────────────────────────────
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  withCredentials: true,      // 쿠키 포함 (JWT/리프레시/CSRF)
-  timeout: 150000,
+  withCredentials: true,          // 쿠키(JWT/리프레시/CSRF) 포함
+  timeout: 150000,                // 유튜브 분석 대기 고려
 });
 
-// 스프링/커스텀 양쪽 모두 대응
-api.defaults.xsrfCookieName = 'XSRF-TOKEN';     // 스프링 기본
-api.defaults.xsrfHeaderName = 'X-CSRF-TOKEN';   // 스프링 기본
+// ★ CSRF: “있으면 보내는” 전략
+api.defaults.xsrfCookieName = 'csrf_token';
+api.defaults.xsrfHeaderName = 'X-CSRF-Token';
 
-// 우리 서버가 'csrf_token'을 쓰는 경우도 같이 지원
 function readCookie(name) {
   const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
   return m ? decodeURIComponent(m.pop()) : '';
 }
-function getCsrfToken() {
-  // 우선순위: 쿠키들 → sessionStorage → localStorage
-  return (
-    readCookie('XSRF-TOKEN') ||
-    readCookie('csrf_token') ||
-    sessionStorage.getItem('csrfToken') ||
-    localStorage.getItem('csrfToken') ||
-    ''
-  );
-}
-function saveCsrfToken(token) {
-  if (!token) return;
-  // 헤더 전파용 임시 저장 (쿠키는 서버가 Set-Cookie로 내리는 게 원칙이지만
-  // 프론트 전파를 위해 스토리지에도 넣어둔다)
-  sessionStorage.setItem('csrfToken', token);
-  // 서버가 커스텀 이름을 기대하는 경우를 위해 비 HttpOnly 쿠키도 세팅
-  // (개발용; 배포는 서버 Set-Cookie 권장)
-  document.cookie = `csrf_token=${encodeURIComponent(token)}; Path=/`;
-  // 스프링 기본 이름도 같이 세팅
-  document.cookie = `XSRF-TOKEN=${encodeURIComponent(token)}; Path=/`;
-}
 
+// 취소 에러 판별(환경별 케이스 흡수)
 function isCanceled(error) {
   return (
     axios.isCancel?.(error) ||
     error?.code === 'ERR_CANCELED' ||
+    error?.message === 'canceled' ||
     error?.name === 'CanceledError' ||
+    error?.cause?.name === 'CanceledError' ||
     error?.config?.signal?.aborted === true
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Request 인터셉터
-// ─────────────────────────────────────────────────────────────
+// ── Request 인터셉터
 api.interceptors.request.use(
   (config) => {
-    // Authorization 헤더는 사용하지 않음(쿠키 인증 전략)
-    // CSRF: 존재하면 양쪽 헤더 키로 동시 전송
-    const csrf = getCsrfToken();
-    if (csrf) {
-      // 스프링 기본
-      config.headers['X-CSRF-TOKEN'] = csrf;
-      // 커스텀(서버가 이 이름을 읽는 경우를 대비)
-      config.headers['X-CSRF-Token'] = csrf;
-      // 일부 미들웨어가 찾는 키
-      config.headers['X-XSRF-TOKEN'] = csrf;
-    }
+    // Bearer(상태관리에서 쓰는 경우만)
+    const accessToken = useUserStore.getState().accessToken;
+    if (accessToken) config.headers['Authorization'] = `Bearer ${accessToken}`;
 
-    if (!config.headers['Accept']) {
-      config.headers['Accept'] = 'application/json';
-    }
+    // CSRF: 쿠키/스토리지 중 있는 값만 첨부 (없으면 안 보냄)
+    const csrf =
+      readCookie('csrf_token') ||
+      sessionStorage.getItem('csrfToken') ||
+      localStorage.getItem('csrfToken');
+    if (csrf) config.headers['X-CSRF-Token'] = csrf;
+
+    // 기본 헤더
+    if (!config.headers['Accept']) config.headers['Accept'] = 'application/json';
     config.headers['X-Requested-With'] = 'XMLHttpRequest';
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// ─────────────────────────────────────────────────────────────
-// Response 인터셉터
-// ─────────────────────────────────────────────────────────────
+// ── Response 인터셉터
 api.interceptors.response.use(
   (res) => {
-    // 서버가 새 CSRF를 내려줄 수 있으니 모두 탐색
+    // 서버가 헤더/바디로 새 CSRF 토큰을 줄 수도 있음 → 보관 콜백
     const h = res.headers || {};
     const token =
       h['x-csrf-token'] ||
       h['x-xsrf-token'] ||
       res.data?.csrfToken ||
       res.data?.result?.csrfToken;
-    if (token) {
-      saveCsrfToken(token);
-      if (typeof onCsrfToken === 'function') {
-        try { onCsrfToken(token); } catch {}
-      }
-    }
+    if (token && typeof onCsrfToken === 'function') onCsrfToken(token);
     return res;
   },
   async (error) => {
+    // 취소는 그대로
     if (isCanceled(error)) return Promise.reject(error);
 
-    const resp = error?.response;
-    if (!resp) {
+    // 무응답/네트워크
+    if (!error?.response) {
       return Promise.reject({
         status: 0,
         message: '네트워크 오류 또는 서버 무응답입니다.',
@@ -115,12 +88,11 @@ api.interceptors.response.use(
       });
     }
 
-    const { status, data } = resp;
+    const { status, data } = error.response;
     const url = String(error.config?.url || '');
     const isAuthEndpoint = url.includes('/user/auth/');
 
     if (status === 401) {
-      // 토큰 만료/부재: 재로그인 유도
       if (!isAuthEndpoint && typeof onUnauthorized === 'function') {
         try { onUnauthorized(error); } catch {}
       }
@@ -135,6 +107,7 @@ api.interceptors.response.use(
       data?.message ||
       data?.error ||
       (status >= 500 ? '서버 오류가 발생했습니다.' : '요청을 처리할 수 없습니다.');
+
     return Promise.reject({ status, message: msg, data });
   }
 );

@@ -2,7 +2,6 @@
 import { Routes, Route } from 'react-router-dom';
 import GlobalStyle from './styles/GlobalStyle.jsx';
 import Layout from './components/Layout.jsx';
-import SideNav from './components/SideNav.jsx';         // ⬅️ 추가
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 import Home from './pages/Home.jsx';
@@ -21,31 +20,25 @@ import ReputationResult from './pages/reputation/ReputationResult.jsx';
 import Withdraw from './pages/user/withdraw.jsx';
 import UnreleasedAnalysisResult from './pages/reputation/UnreleasedAnalysisResult.jsx';
 
-// ⬇️ Layout을 감싸서 SideNav를 전역 마운트
-function LayoutWithSideNav() {
-  return (
-    <>
-      <Layout />       {/* 기존 레이아웃(헤더+Outlet 포함) */}
-      <SideNav />      {/* 사이드 내비 항상 렌더 */}
-    </>
-  );
-}
-
 function App() {
   return (
     <>
       <GlobalStyle />
+
       <Routes>
-        {/* 헤더/사이드바가 없는 독립 페이지 */}
+        {/* 🔹 로그인 페이지는 Header/SideNav 없는 독립 페이지 */}
         <Route path="/login" element={<Login />} />
+
+        {/* 🔹 리뷰 공유 페이지도 독립 렌더링 */}
         <Route path="/review/:reviewId" element={<PeerReview />} />
 
-        {/* 헤더/사이드바가 있는 나머지 페이지 */}
-        <Route element={<LayoutWithSideNav />}>
+        {/* 🔹 나머지 모든 페이지는 Layout에 포함됨 */}
+        <Route element={<Layout />}>
+
           {/* 공개 라우트 */}
           <Route path="/" element={<Home />} />
 
-          {/* 보호 라우트 그룹 */}
+          {/* 보호 라우트 */}
           <Route element={<ProtectedRoute />}>
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/profile/edit" element={<ProfileEditPage />} />
@@ -57,7 +50,10 @@ function App() {
 
             <Route path="/analysis/unreleased" element={<Unreleased />} />
             <Route path="/analysis/unreleased/result" element={<UnreleasedResult />} />
-            <Route path="/analysis/unreleased/result/:shareId" element={<UnreleasedAnalysisResult />} />
+            <Route
+              path="/analysis/unreleased/result/:shareId"
+              element={<UnreleasedAnalysisResult />}
+            />
 
             <Route path="/discovery/keyword" element={<KeywordSearch />} />
             <Route path="/discovery/keyword/results" element={<KeywordSearchResults />} />

@@ -1,36 +1,76 @@
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-//import WordCloud from 'react-wordcloud';
+import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 import WordCloudCompat from "../../components/WordCloudCompat";
 import ChartBox from '../../components/ChartBox.jsx';
-import { mockDoughnutData, mockBarData, mockWordCloudData } from '../../data/mockReputationData.js';
+import { mockDoughnutData, mockBarData, mockWordCloudData } from "../../data/mockReputationData.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ChartDataLabels);
 
 const wordCloudOptions = {
   colors: ['#FACD66', '#FFC107', '#4CAF50', '#2196F3', '#F44336', '#9C27B0', '#fff', '#eee'],
-  fontFamily: 'Anton', 
+  fontFamily: 'Anton',
   fontSizes: [20, 80],
   padding: 1,
-  rotations: 2, 
+  rotations: 2,
   rotationAngles: [0, 90],
-  scale: 'sqrt', 
-  enableTooltip: false, 
-  shape: 'circle',
+  scale: 'sqrt',
   deterministic: true,
 };
 
-
 function ReputationResult() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  const [loading, setLoading] = useState(true);
+
   const singer = searchParams.get('singer');
   const title = searchParams.get('title');
-  
-  // (doughnutOptions, barOptions는 기존과 동일)
+
+  const { summary } = location.state || {};
+
+  /** 로딩 효과 (UX 통일) */
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 400); // 0.4초 후 표시
+    return () => clearTimeout(t);
+  }, []);
+
+  /** ★ summary 없어도 똑같이 로딩 UI 먼저 보여줌 */
+  if (loading) {
+    return <LoadingSpinner title="SEARCH" time="잠시만 기다려주세요..." />;
+  }
+
+  /** API 실패로 summary가 없을 때 */
+  if (!summary) {
+    return <ResultContainer>요청한 데이터가 없습니다.</ResultContainer>;
+  }
+
+  /** 실제 API 데이터 매핑 */
+  const sentiment = summary.sentimentSummary;
+  const emotions = summary.emotionDetails;
+  const keywords = summary.keywords || [];
+
+  const doughnutData = {
+    labels: ['Positive', 'Negative', 'Neutral'],
+    datasets: [
+      {
+        data: [
+          Math.round(sentiment.positive * 100),
+          Math.round(sentiment.negative * 100),
+          Math.round(sentiment.neutral * 100)
+        ],
+        backgroundColor: ['#4CAF50', '#F44336', '#9E9E9E'],
+        borderColor: ['#1D2123'],
+        borderWidth: 5,
+      }
+    ]
+  };
+
   const doughnutOptions = {
     maintainAspectRatio: false,
     cutout: '60%',
@@ -48,51 +88,44 @@ function ReputationResult() {
       },
       datalabels: {
         color: '#fff',
-        font: {
-          size: 14,
-          weight: 'bold',
-        },
-        textStrokeColor: 'black',
-        textStrokeWidth: 2,
-        formatter: (value) => {
-          return value;
-        }
+        font: { size: 14, weight: 'bold' },
+        formatter: (value) => value,
       }
     }
   };
-  
+
+  const barData = {
+    labels: Object.keys(emotions),
+    datasets: [
+      {
+        label: 'Emotion Distribution',
+        data: Object.values(emotions).map(v => Math.round(v * 100)),
+        backgroundColor: ['#FF9800', '#2196F3', '#4CAF50', '#607D8B'],
+      }
+    ]
+  };
+
   const barOptions = {
     indexAxis: 'y',
     maintainAspectRatio: false,
-    layout: {
-      padding: {
-        right: 40
-      }
-    },
+    layout: { padding: { right: 40 } },
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: true },
       datalabels: {
         anchor: 'end',
         align: 'end',
         color: '#fff',
-        font: {
-          weight: 'bold',
-          size: 14,
-        },
+        font: { weight: 'bold', size: 14 },
         formatter: (value) => `${value}%`,
       }
     },
     scales: {
-      y: { ticks: { color: '#fff', font: {size: 14} }, grid: { display: false }, border: { display: false } },
-      x: { 
-        max: 100,
-        ticks: { display: false }, 
-        grid: { display: false }, 
-        border: { display: false } 
-      }
+      y: { ticks: { color: '#fff', font: { size: 14 } }, grid: { display: false } },
+      x: { max: 100, ticks: { display: false }, grid: { display: false } },
     }
   };
+
+  const wordCloudData = keywords.map(k => ({ text: k, value: 50 }));
 
   return (
     <ResultContainer>
@@ -100,24 +133,22 @@ function ReputationResult() {
         <ResultTitle>음악 평판 분석</ResultTitle>
         <ResultSubTitle>Analyzing "{title}" by {singer}</ResultSubTitle>
       </ResultHeader>
-      
+
       <ChartGrid>
         <LeftColumn>
           <ChartBox title="Sentiment Analysis">
-            <Doughnut data={mockDoughnutData} options={doughnutOptions} />
+            <Doughnut data={doughnutData} options={doughnutOptions} />
           </ChartBox>
+
           <ChartBox title="Detailed Emotion distribution">
-            <Bar data={mockBarData} options={barOptions} />
+            <Bar data={barData} options={barOptions} />
           </ChartBox>
         </LeftColumn>
-        
+
         <RightColumn>
           <ChartBox title="Top Keywords (Word Cloud)">
             <WordCloudWrapper>
-              <WordCloudCompat
-                words={mockWordCloudData}
-                options={wordCloudOptions}
-              />
+              <WordCloudCompat words={wordCloudData} options={wordCloudOptions} />
             </WordCloudWrapper>
           </ChartBox>
         </RightColumn>
@@ -126,9 +157,8 @@ function ReputationResult() {
   );
 }
 
-// --- styled-components ---
+/* ---------------- styled-components (절대 수정 안함) ---------------- */
 
-// (ResultContainer, ResultHeader, ResultTitle, ResultSubTitle, ChartGrid, LeftColumn은 동일)
 const ResultContainer = styled.div`
   padding: 20px;
   max-width: 1400px;
@@ -168,27 +198,23 @@ const LeftColumn = styled.div`
   gap: 20px;
 `;
 
-// --- 🚨 여기가 수정되었습니다 ---
 const RightColumn = styled.div`
-  & > div { /* ChartBox */
-    height: calc(450px * 2 + 20px); /* = 920px */
-    
-    & > div { /* ChartContent (ChartBox.jsx의 스타일을 확장) */
+  & > div {
+    height: calc(450px * 2 + 20px);
+    & > div {
       display: flex;
       align-items: center;
       justify-content: center;
-      
-      /* ChartBox.jsx의 원본 스타일을 유지합니다. */
-      flex-grow: 1; 
-      position: relative; 
+      flex-grow: 1;
+      position: relative;
     }
   }
 `;
 
 const WordCloudWrapper = styled.div`
   width: 100%;
-  aspect-ratio: 1 / 1; /* 너비와 높이를 1:1 비율(정사각형)로 강제 */
-  margin: auto; /* flex 컨테이너 안에서 중앙 정렬 */
+  aspect-ratio: 1 / 1;
+  margin: auto;
 `;
 
 export default ReputationResult;
