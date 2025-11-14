@@ -54,12 +54,15 @@ function Released() {
           <DecorativeImage src="/keyword.png" alt="decorative" />
 
           <InputContainer>
+
+            {/* ⬇ Enter 입력 시 handleAnalysis 실행 */}
             <InputGroup>
               <SearchInput
                 type="text"
                 placeholder="Singer"
                 value={singer}
                 onChange={(e) => setSinger(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAnalysis()}
               />
             </InputGroup>
 
@@ -69,8 +72,10 @@ function Released() {
                 placeholder="Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAnalysis()}
               />
             </InputGroup>
+
           </InputContainer>
 
           <SearchButton onClick={handleAnalysis}>→</SearchButton>
@@ -139,6 +144,11 @@ const InputGroup = styled.div`
   background-color: rgba(40, 40, 40, 0.8);
   border-radius: 50px;
   padding: 10px 25px;
+
+  /* ⭐ hover 시 노란 아웃라인 */
+  transition: box-shadow .3s ease-in-out;
+  &:hover { box-shadow: 0 0 0 2px #FACD66; }
+  &:focus-within { box-shadow: 0 0 0 2px #FACD66; }
 `;
 
 const SearchInput = styled.input`
@@ -160,17 +170,5 @@ const SearchButton = styled.button`
   padding-left: 15px;
   &:hover { color: #FACD66; }
 `;
-
-const LoadingText = styled.h1` font-size: 4rem; color: #fff; `;
-const Spinner = styled.div`
-  border: 16px solid #f3f3f3;
-  border-top: 16px solid #FACD66;
-  border-radius: 50%;
-  width: 120px; height: 120px;
-  animation: spin 2s linear infinite;
-  margin: 40px 0;
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-`;
-const LoadingTime = styled.p` color: #aaa; `;
 
 export default Released;

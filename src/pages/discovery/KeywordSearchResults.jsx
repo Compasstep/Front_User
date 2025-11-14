@@ -100,7 +100,7 @@ export default function KeywordSearchResults() {
     (async () => {
       try {
         const res = await api.post(
-          '/user/discovery/keyword',
+          '/user/discovery/keyword', 
           { query: initialKeyword, emotion: initialEmotionLabel || null },
           { timeout: 1500000, signal: controller.signal } // ← 추가: signal 전달
         );

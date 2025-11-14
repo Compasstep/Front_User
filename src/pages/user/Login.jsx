@@ -18,6 +18,7 @@ function Login() {
   const handleLoginWithGoogleToken = useCallback(
     async (googleIdToken) => {
       if (loading) return;
+
       setLoading(true);
       setErrorMsg('');
 
@@ -26,32 +27,27 @@ function Login() {
           LOGIN_URL,
           {
             googleToken: googleIdToken,
-            idToken: googleIdToken,   // ← 백엔드 DTO 맞추기
+            idToken: googleIdToken,
           },
           { headers: { 'Content-Type': 'application/json' } }
         );
 
         const data = res?.data || {};
+
         const csrfToken =
           data?.result?.csrfToken ||
           data?.csrfToken ||
           null;
 
-        if (csrfToken) {
-          sessionStorage.setItem('csrfToken', csrfToken);
-          localStorage.setItem('csrfToken', csrfToken);
-        }
-
-        const accessToken =
-          data?.result?.accessToken || data?.accessToken || null;
-        const refreshToken =
-          data?.result?.refreshToken || data?.refreshToken || null;
+        const user =
+          data?.result?.user ||
+          data?.user ||
+          null;
 
         setLoginState({
           isLoggedIn: true,
-          csrfToken,
-          accessToken,
-          refreshToken,
+          user,
+          csrfToken,     // ★ 프론트는 이거만 관리
         });
 
         navigate('/');
@@ -65,6 +61,7 @@ function Login() {
     [loading, navigate, setLoginState]
   );
 
+  // ========= Google OAuth 초기화 =========
   useEffect(() => {
     const CLIENT_ID =
       import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -75,22 +72,13 @@ function Login() {
 
     function initGoogle() {
       if (!window.google?.accounts?.id) return;
-      if (!CLIENT_ID) {
-        setErrorMsg('Google client_id가 설정되지 않았습니다.');
-        return;
-      }
 
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
-        callback: ({ credential }) => {
-          if (!credential) {
-            setErrorMsg('구글 토큰을 받지 못했습니다.');
-            return;
-          }
-          handleLoginWithGoogleToken(credential);
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true,
+        callback: ({ credential }) =>
+          credential
+            ? handleLoginWithGoogleToken(credential)
+            : setErrorMsg('구글 토큰을 받지 못했습니다.'),
       });
 
       const btnDiv = document.getElementById('googleBtnContainer');
@@ -100,16 +88,14 @@ function Login() {
           theme: 'filled_blue',
           size: 'large',
           text: 'continue_with',
-          shape: 'rectangular',
           width: 260,
         });
         btnMountedRef.current = true;
       }
     }
 
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
+    if (window.google?.accounts?.id) initGoogle();
+    else {
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
@@ -117,34 +103,24 @@ function Login() {
       script.onload = initGoogle;
       document.head.appendChild(script);
     }
-
-    return () => {
-      try {
-        window.google?.accounts?.id?.cancel();
-      } catch {}
-      btnMountedRef.current = false;
-    };
   }, [handleLoginWithGoogleToken]);
 
   return (
     <LoginContainer>
       <Title>Compassstep</Title>
       <Subtitle>로그인</Subtitle>
-
-      <GoogleLoginBox aria-live="polite">
+      <GoogleLoginBox>
         {loading ? '로그인 중...' : <div id="googleBtnContainer" />}
       </GoogleLoginBox>
-
-      {errorMsg && (
-        <ErrorText>{errorMsg}</ErrorText>
-      )}
+      {errorMsg && <ErrorText>{errorMsg}</ErrorText>}
     </LoginContainer>
   );
 }
 
-/* ────────────────────────────────────────────────
-   styled-components (CSS)
-────────────────────────────────────────────────── */
+/* =====================================
+   Styled Components
+===================================== */
+
 const LoginContainer = styled.div`
   display:flex;
   flex-direction:column;
@@ -170,22 +146,17 @@ const GoogleLoginBox = styled.div`
   color:#fff;
   font-size:18px;
   padding:15px 30px;
-  border:none;
   border-radius:8px;
+  min-height:54px;
+  width:260px;
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
-  min-height:54px;
-  width:260px;
-  cursor:pointer;
-  &:hover { background-color:#1a73e8; }
 `;
 
 const ErrorText = styled.p`
   color:red;
   margin-top:20px;
-  font-size:14px;
 `;
 
 export default Login;

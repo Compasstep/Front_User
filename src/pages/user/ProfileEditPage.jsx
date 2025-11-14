@@ -4,92 +4,87 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import useUserStore from '../../store/userStore.js';
 import Modal from '../../components/Modal.jsx';
+import api from "../../api/client";
+
+// 🔥 수정된 부분
+import { requestPresignedUrl, uploadToS3 } from "../../api/s3";
 
 function ProfileEditPage() {
   const navigate = useNavigate();
   const store = useUserStore();
   const user = store?.user ?? {};
 
-  // 폼 상태
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [photoUrl, setPhotoUrl] = useState(user?.avatarUrl || '');
 
-  // UI 상태
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [dirty, setDirty] = useState(false);
 
-  // 모달 미리보기
   const [modalPreview, setModalPreview] = useState('');
   const fileInputRef = useMemo(() => ({ current: null }), []);
 
-  // user 값 변하면 폼 초기화
+  // 사용자 초기값 반영
   useEffect(() => {
     setName(user?.name || '');
     setEmail(user?.email || '');
     setPhotoUrl(user?.avatarUrl || '');
   }, [user?.name, user?.email, user?.avatarUrl]);
 
-  // 변경 여부 추적
+  // 변경 감지
   useEffect(() => {
     const changed =
       (user?.name || '') !== name ||
       (user?.email || '') !== email ||
-      (user?.avatarUrl || '') !== photoUrl; // ✅ avatarUrl로 비교
+      (user?.avatarUrl || '') !== photoUrl;
+
     setDirty(changed);
-  }, [name, email, photoUrl, user?.name, user?.email, user?.avatarUrl]); // ✅ avatarUrl로 비교
+  }, [name, email, photoUrl, user?.name, user?.email, user?.avatarUrl]);
 
-  // 페이지 이탈(새로고침/닫기) 경고
-  useEffect(() => {
-    const handler = (e) => {
-      if (!dirty) return;
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [dirty]);
-
-  // 모달 열기/닫기
   const openModal = () => {
     setModalPreview(photoUrl || '');
     setIsModalOpen(true);
   };
   const closeModal = () => setIsModalOpen(false);
 
-  // 파일 선택 트리거
   const handleChooseFile = () => fileInputRef.current?.click();
 
-  // ✅ 파일을 Data URL(Base64)로 변환하는 헬퍼
-  const readAsDataURL = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  // ✅ 파일 선택 처리 (Data URL로 저장)
+  /** 
+   * 🔥 프로필 이미지 업로드 절차
+   * 1) presigned URL 요청 (fileType=profile)
+   * 2) S3 PUT 업로드
+   * 3) fileUrl(fileKey)을 photoUrl로 세팅
+   */
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const dataUrl = await readAsDataURL(file);
-      setModalPreview(dataUrl);
-      setPhotoUrl(dataUrl);
-      setMessage('프로필 사진이 임시로 적용되었습니다. 저장을 눌러 확정하세요.');
+      // 미리보기
+      const reader = new FileReader();
+      reader.onloadend = () => setModalPreview(reader.result);
+      reader.readAsDataURL(file);
+
+      // 1) Presigned URL 요청
+      const { presignedUrl, fileUrl } = await requestPresignedUrl(file);
+
+      // 2) S3 업로드
+      await uploadToS3(presignedUrl, file);
+
+      // 3) photoUrl 갱신 (fileKey)
+      setPhotoUrl(fileUrl);
+      setMessage("프로필 사진이 업로드되었습니다. 저장을 눌러 확정하세요.");
+      closeModal();
     } catch (err) {
       console.error(err);
-      setMessage('이미지 로딩 중 오류가 발생했습니다.');
+      setMessage("이미지 업로드 중 오류가 발생했습니다.");
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  // 뒤로가기(취소) 동작
   const handleBack = () => {
     if (!dirty) return navigate(-1);
     if (confirm('저장하지 않은 변경 사항이 있습니다. 나가시겠어요?')) {
@@ -97,89 +92,91 @@ function ProfileEditPage() {
     }
   };
 
-  // 저장
   const handleSave = async () => {
     setIsSaving(true);
     setMessage('');
+
     try {
-      await Promise.resolve(store.updateProfile({
-        name,
-        email,
-        avatarUrl: photoUrl, // ✅ store는 avatarUrl을 표준키로 사용
-      }));
+      // 1) 서버에 프로필 이미지 변경 요청
+      if (photoUrl && photoUrl !== user?.avatarUrl) {
+        await api.patch("/user/profile/image", {
+          fileKey: photoUrl,
+        });
+      }
 
-    setMessage('저장되었습니다.');
-    setTimeout(() => navigate(-1), 600);
-  } catch (err) {
-    console.error(err);
-    setMessage('저장 중 오류가 발생했습니다.');
-  } finally {
-    setIsSaving(false);
-  }
-};
+      // 2) 닉네임 변경
+      if (name !== user?.name) {
+        await api.patch("/user/profile/nickname", {
+          nickname: name
+        });
+      }
 
+      // 3) 전역 store 업데이트
+      await store.setLoginState({
+        isLoggedIn: true,
+        user: {
+          ...user,
+          name,
+          avatarUrl: photoUrl,
+        },
+      });
 
-  // --- 🚨 여기가 수정되었습니다 ---
-  // 변경 취소
+      setMessage('저장되었습니다.');
+      setTimeout(() => navigate(-1), 600);
+    } catch (err) {
+      console.error(err);
+      setMessage('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCancel = () => {
     setName(user?.name || '');
     setEmail(user?.email || '');
-    setPhotoUrl(user?.avatarUrl || ''); // ✅ photoUrl -> avatarUrl
+    setPhotoUrl(user?.avatarUrl || '');
     setMessage('변경 사항을 취소했습니다.');
   };
 
   return (
     <Container>
       <EditBox>
-        {/* 상단 바: 뒤로가기 + 제목 */}
         <TopBar>
-          <BackButton type="button" onClick={handleBack} aria-label="뒤로가기">⬅︎</BackButton>
+          <BackButton type="button" onClick={handleBack}>⬅︎</BackButton>
           <Title>프로필 수정</Title>
           <Spacer />
         </TopBar>
 
-        {/* 아바타 */}
-        <ProfileImageContainer onClick={openModal} title="프로필 이미지 변경">
+        <ProfileImageContainer onClick={openModal}>
           <ProfileImage $src={photoUrl} />
           <EditIcon>✏️</EditIcon>
         </ProfileImageContainer>
 
-        {/* 폼 */}
         <FormGroup>
-          <Label htmlFor="name">이름</Label>
+          <Label>닉네임</Label>
           <Input
-            id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="이름을 입력하세요"
+            placeholder="닉네임을 입력하세요"
           />
         </FormGroup>
 
         <FormGroup>
-          <Label htmlFor="email">이메일</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일을 입력하세요"
-          />
+          <Label>이메일</Label>
+          <Input value={email} disabled />
         </FormGroup>
 
         {message && <HelperText>{message}</HelperText>}
 
         <Actions>
-          <SecondaryButton type="button" onClick={handleCancel} disabled={isSaving}>
-            취소
-          </SecondaryButton>
-          <PrimaryButton type="button" onClick={handleSave} disabled={isSaving}>
+          <SecondaryButton onClick={handleCancel} disabled={isSaving}>취소</SecondaryButton>
+          <PrimaryButton onClick={handleSave} disabled={isSaving}>
             {isSaving ? '저장 중…' : '저장'}
           </PrimaryButton>
         </Actions>
       </EditBox>
 
-      {/* 이미지 업로드 모달 */}
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="프로필 수정">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="프로필 사진 변경">
         <UploaderBox>
           <Preview $src={modalPreview}>
             {!modalPreview && <Placeholder>이미지 업로드</Placeholder>}
@@ -192,17 +189,14 @@ function ProfileEditPage() {
             onChange={handleFileSelected}
           />
 
-          <UploadButton type="button" onClick={handleChooseFile}>
-            Upload
-          </UploadButton>
+          <UploadButton onClick={handleChooseFile}>이미지 선택</UploadButton>
         </UploaderBox>
       </Modal>
     </Container>
   );
 }
 
-/* ===================== styled-components (기존과 동일) ===================== */
-
+/* ----- styled-components (기존 그대로 유지) ----- */
 const Container = styled.div`
   display: flex;
   justify-content: center;
@@ -371,8 +365,6 @@ const SecondaryButton = styled.button`
     cursor: default;
   }
 `;
-
-/* ====== Modal 내부 업로더 ====== */
 
 const UploaderBox = styled.div`
   width: 400px;
