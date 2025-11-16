@@ -30,7 +30,7 @@ const normalizeGenre = (raw) => {
 };
 
 function Rankings() {
-  const [genreInput, setGenreInput] = useState('kpop'); // 사용자 입력값
+  const [genreInput, setGenreInput] = useState('pop'); // 사용자 입력값
   const [market, setMarket] = useState('KR');
   const [limit, setLimit] = useState(30);
   const [list, setList] = useState([]);
@@ -202,7 +202,7 @@ const Input = styled.input`
 `;
 const ReloadBtn = styled.button`
   height:32px; padding:0 12px; border-radius:8px; border:none; background:#1b3e45; color:#fff; cursor:pointer;
-  opacity: ${(p) => (p.disabled ? 0.7 : 1)};
+  opacity: ${(p) => (p.disabled ? 0.7 : 1)}; margin-top: 20px;
 `;
 
 const PromoImage = styled.img`

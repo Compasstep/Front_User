@@ -6,7 +6,7 @@ import useUserStore from '../../store/userStore.js';
 import Modal from '../../components/Modal.jsx';
 import api from "../../api/client";
 
-// 🔥 수정된 부분
+// S3 업로드 유틸
 import { requestPresignedUrl, uploadToS3 } from "../../api/s3";
 
 function ProfileEditPage() {
@@ -14,9 +14,11 @@ function ProfileEditPage() {
   const store = useUserStore();
   const user = store?.user ?? {};
 
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.nickname || user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [photoUrl, setPhotoUrl] = useState(user?.avatarUrl || '');
+  const [photoUrl, setPhotoUrl] = useState(
+    user?.profileImageUrl || user?.avatarUrl || ''
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -26,22 +28,22 @@ function ProfileEditPage() {
   const [modalPreview, setModalPreview] = useState('');
   const fileInputRef = useMemo(() => ({ current: null }), []);
 
-  // 사용자 초기값 반영
+  // 사용자 초기값 반영 (store.user 변경 시 동기화)
   useEffect(() => {
-    setName(user?.name || '');
+    setName(user?.nickname || user?.name || '');
     setEmail(user?.email || '');
-    setPhotoUrl(user?.avatarUrl || '');
-  }, [user?.name, user?.email, user?.avatarUrl]);
+    setPhotoUrl(user?.profileImageUrl || user?.avatarUrl || '');
+  }, [user?.nickname, user?.name, user?.email, user?.profileImageUrl, user?.avatarUrl]);
 
   // 변경 감지
   useEffect(() => {
+    const originName = user?.nickname || user?.name || '';
+    const originPhoto = user?.profileImageUrl || user?.avatarUrl || '';
     const changed =
-      (user?.name || '') !== name ||
-      (user?.email || '') !== email ||
-      (user?.avatarUrl || '') !== photoUrl;
-
+      originName !== name ||
+      originPhoto !== photoUrl;
     setDirty(changed);
-  }, [name, email, photoUrl, user?.name, user?.email, user?.avatarUrl]);
+  }, [name, photoUrl, user?.nickname, user?.name, user?.profileImageUrl, user?.avatarUrl]);
 
   const openModal = () => {
     setModalPreview(photoUrl || '');
@@ -51,11 +53,11 @@ function ProfileEditPage() {
 
   const handleChooseFile = () => fileInputRef.current?.click();
 
-  /** 
-   * 🔥 프로필 이미지 업로드 절차
-   * 1) presigned URL 요청 (fileType=profile)
+  /**
+   * 프로필 이미지 업로드 절차
+   * 1) presigned URL 요청
    * 2) S3 PUT 업로드
-   * 3) fileUrl(fileKey)을 photoUrl로 세팅
+   * 3) fileKey(photoUrl) 로 상태 업데이트
    */
   const handleFileSelected = async (e) => {
     const file = e.target.files?.[0];
@@ -67,14 +69,16 @@ function ProfileEditPage() {
       reader.onloadend = () => setModalPreview(reader.result);
       reader.readAsDataURL(file);
 
-      // 1) Presigned URL 요청
-      const { presignedUrl, fileUrl } = await requestPresignedUrl(file);
+      // 1) Presigned URL 요청 (fileType, contentType 등은 s3.js 에서 구성)
+      const { presignedUrl, fileUrl, fileKey } = await requestPresignedUrl(file);
 
       // 2) S3 업로드
       await uploadToS3(presignedUrl, file);
 
-      // 3) photoUrl 갱신 (fileKey)
-      setPhotoUrl(fileUrl);
+      // 3) photoUrl 갱신
+      //    - 백엔드가 fileKey 를 받으므로, fileKey > fileUrl 순으로 사용
+      const key = fileKey || fileUrl;
+      setPhotoUrl(key);
       setMessage("프로필 사진이 업로드되었습니다. 저장을 눌러 확정하세요.");
       closeModal();
     } catch (err) {
@@ -93,48 +97,40 @@ function ProfileEditPage() {
   };
 
   const handleSave = async () => {
+    if (!dirty) {
+      setMessage('변경된 내용이 없습니다.');
+      return;
+    }
+
     setIsSaving(true);
     setMessage('');
 
     try {
-      // 1) 서버에 프로필 이미지 변경 요청
-      if (photoUrl && photoUrl !== user?.avatarUrl) {
-        await api.patch("/user/profile/image", {
-          fileKey: photoUrl,
-        });
-      }
-
-      // 2) 닉네임 변경
-      if (name !== user?.name) {
-        await api.patch("/user/profile/nickname", {
-          nickname: name
-        });
-      }
-
-      // 3) 전역 store 업데이트
-      await store.setLoginState({
-        isLoggedIn: true,
-        user: {
-          ...user,
-          name,
-          avatarUrl: photoUrl,
-        },
+      // 🔥 전역 store API 이용 (닉네임 + 프로필 이미지 + /profile/info 재조회)
+      const updated = await store.updateProfile({
+        nickname: name,
+        avatarUrl: photoUrl, // fileKey
       });
+
+      // 로컬 상태도 최신값으로 맞춰줌
+      setName(updated?.nickname || name);
+      setEmail(updated?.email || email);
+      setPhotoUrl(updated?.profileImageUrl || updated?.avatarUrl || photoUrl);
 
       setMessage('저장되었습니다.');
       setTimeout(() => navigate(-1), 600);
     } catch (err) {
       console.error(err);
-      setMessage('저장 중 오류가 발생했습니다.');
+      setMessage(err?.message || '저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    setName(user?.name || '');
+    setName(user?.nickname || user?.name || '');
     setEmail(user?.email || '');
-    setPhotoUrl(user?.avatarUrl || '');
+    setPhotoUrl(user?.profileImageUrl || user?.avatarUrl || '');
     setMessage('변경 사항을 취소했습니다.');
   };
 
@@ -148,7 +144,7 @@ function ProfileEditPage() {
         </TopBar>
 
         <ProfileImageContainer onClick={openModal}>
-          <ProfileImage $src={photoUrl} />
+          <ProfileImage $src={photoUrl && (user?.profileImageUrl || user?.avatarUrl || photoUrl)} />
           <EditIcon>✏️</EditIcon>
         </ProfileImageContainer>
 

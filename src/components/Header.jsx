@@ -35,33 +35,31 @@ function Header() {
       )}
 
       <NavIcons>
-        {isHomePage && (
-          <>
-            {isLoggedIn ? (
-              <>
-                <AvatarButton
-                  type="button"
-                  onClick={() => navigate('/profile/edit')}
-                >
-                  {avatarUrl ? (
-                    <AvatarImg src={avatarUrl} alt="프로필" />
-                  ) : (
-                    <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
-                  )}
-                </AvatarButton>
+        {isHomePage &&
+          (isLoggedIn ? (
+            <>
+              {/* 아바타 클릭하면 프로필 수정 */}
+              <AvatarButton type="button" onClick={() => navigate('/profile/edit')}>
+                {avatarUrl ? (
+                  <AvatarImg src={avatarUrl} alt="프로필" />
+                ) : (
+                  <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+                )}
+              </AvatarButton>
 
-                <UserLink to="/mypage">
-                  {user?.name ? `${user.name}님` : '마이페이지'}
-                </UserLink>
+              {/* 🔥 유저명은 더 이상 링크 X */}
+              <UserName>{displayName}님</UserName>
 
-                <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
-              </>
-            ) : (
-              <LoginLink to="/login">로그인</LoginLink>
-            )}
-          </>
-        )}
+              {/* 🔥 새로 만든 MY PAGE 버튼 */}
+              <MyPageButton to="/mypage">MY PAGE</MyPageButton>
 
+              <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
+            </>
+          ) : (
+            <LoginLink to="/login">로그인</LoginLink>
+          ))}
+
+        {/* 햄버거 메뉴 */}
         <HamburgerButton onClick={toggleNav}>☰</HamburgerButton>
       </NavIcons>
     </HeaderContainer>
@@ -70,7 +68,7 @@ function Header() {
 
 export default Header;
 
-/* ---------- styles (기존 유지) ---------- */
+/* ---------------- styles ---------------- */
 
 const HeaderContainer = styled.header`
   height: 70px;
@@ -95,6 +93,7 @@ const HeaderContainer = styled.header`
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
+
   img {
     height: 150px;
     margin-top: 56px;
@@ -104,6 +103,7 @@ const Logo = styled(Link)`
 const SmallLogo = styled(Link)`
   display: flex;
   align-items: center;
+
   img {
     height: 50px;
   }
@@ -147,9 +147,18 @@ const AvatarFallback = styled.span`
   font-size: 14px;
 `;
 
-const UserLink = styled(Link)`
+const UserName = styled.span`
   color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+`;
+
+const MyPageButton = styled(Link)`
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
   text-decoration: none;
+
   &:hover {
     color: #facd66;
   }
@@ -165,12 +174,24 @@ const LogoutButton = styled.button`
   border: none;
   color: #fff;
   cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+
+  &:hover {
+    color: #facd66;
+  }
 `;
 
 const HamburgerButton = styled.button`
   background: none;
   border: none;
   color: white;
-  font-size: 24px;
+  font-size: 27px;
   cursor: pointer;
+  margin-top: -7px;
+  padding: 0;
+
+  &:hover {
+    color: #facd66;
+  }
 `;

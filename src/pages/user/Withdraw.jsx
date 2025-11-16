@@ -2,10 +2,11 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import useUserStore from '../../store/userStore.js';
+import api from '../../api/client';   // ★ 추가됨
 
 export default function Withdraw() {
   const [agree, setAgree] = useState(false);
-  const [openConfirm, setOpenConfirm] = useState(false); // ✅ 2차 확인 모달
+  const [openConfirm, setOpenConfirm] = useState(false);
   const navigate = useNavigate();
   const { logout } = useUserStore();
 
@@ -15,13 +16,20 @@ export default function Withdraw() {
     setOpenConfirm(true);
   };
 
-  // 실제 탈퇴 진행 (모달에서 확정 시 호출)
   const handleWithdrawConfirm = async () => {
-    // TODO: 백엔드 연동(난수처리/소프트딜리트) API 호출
-    // await fetch('/api/account/withdraw', { method: 'POST', ... });
+  try {
+    // ★ 실제 서버는 DELETE임 (POST 아님)
+    await api.delete('/user/auth/signout');
+
     await logout();
-    navigate('/login');
-  };
+    localStorage.removeItem('cs-auth');
+    navigate('/login', { replace: true });
+  } catch (err) {
+    console.error(err);
+    alert('탈퇴 중 오류가 발생했습니다.');
+  }
+};
+
 
   return (
     <Wrap>
@@ -66,11 +74,18 @@ export default function Withdraw() {
         </DangerButton>
       </AgreePanel>
 
-      {/* ✅ 확인 모달 */}
+      {/* 확인 모달 */}
       {openConfirm && (
         <ModalBackdrop onClick={() => setOpenConfirm(false)} aria-hidden="true">
-          <ModalCard onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="withdraw-confirm-title">
-            <ModalHeader id="withdraw-confirm-title">정말 탈퇴하시겠습니까 ?</ModalHeader>
+          <ModalCard
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-confirm-title"
+          >
+            <ModalHeader id="withdraw-confirm-title">
+              정말 탈퇴하시겠습니까 ?
+            </ModalHeader>
             <ModalSub>Compassstep을 떠난다니 아쉬워요🥲</ModalSub>
 
             <ModalBody>
@@ -81,8 +96,12 @@ export default function Withdraw() {
             </ModalBody>
 
             <ModalActions>
-              <ModalSecondary onClick={() => setOpenConfirm(false)}>취소</ModalSecondary>
-              <ModalDanger onClick={handleWithdrawConfirm}>정말 탈퇴하기</ModalDanger>
+              <ModalSecondary onClick={() => setOpenConfirm(false)}>
+                취소
+              </ModalSecondary>
+              <ModalDanger onClick={handleWithdrawConfirm}>
+                정말 탈퇴하기
+              </ModalDanger>
             </ModalActions>
           </ModalCard>
         </ModalBackdrop>
@@ -225,14 +244,12 @@ const DangerButton = styled.button`
   color: #fff;
   cursor: pointer;
   transition: filter 0.15s ease, opacity 0.15s ease, transform 0.06s ease;
-  /* 활성(선명) 상태 */
   background: linear-gradient(180deg, #ff6a5a 0%, #e14c3d 100%);
   box-shadow: 0 6px 18px rgba(225, 76, 61, 0.35);
 
   &:hover { filter: brightness(1.02); }
   &:active { transform: translateY(1px); }
 
-  /* 비활성(흐림) 상태 */
   &[disabled],
   &[aria-disabled="true"] {
     background: #3b4146;
@@ -244,7 +261,7 @@ const DangerButton = styled.button`
   }
 `;
 
-/* ==================== 확인 모달 ==================== */
+/* ===== 모달 ===== */
 
 const ModalBackdrop = styled.div`
   position: fixed;

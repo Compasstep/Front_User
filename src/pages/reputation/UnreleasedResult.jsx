@@ -1,22 +1,17 @@
-// src/pages/reputation/UnreleasedResult.jsx
-
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // 1. useSearchParams import
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 function UnreleasedResult() {
   const navigate = useNavigate();
   const [buttonText, setButtonText] = useState('주소 복사');
 
-  // --- 수정된 부분 ---
-  // 2. URL 쿼리 파라미터에서 shareId를 가져옵니다.
+  // ⭐ postId로 변경
   const [searchParams] = useSearchParams();
-  const shareId = searchParams.get('shareId');
+  const postId = searchParams.get('postId');
 
-  // 3. shareId를 기반으로 전체 공유 URL을 동적으로 생성합니다.
-  // (예: http://localhost:5173/review/new-post-id-12345)
-  const shareUrl = `${window.location.origin}/review/${shareId}`;
-  // ---
+  // ⭐ 실제 공유 URL은 /review/{postId}
+const shareUrl = `${window.location.origin}/review/${postId}`;
 
   const copyUrlToClipboard = () => {
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -31,7 +26,6 @@ function UnreleasedResult() {
         <Title>RESULT</Title>
         <UrlContainer>
           <UrlLabel>공유 URL</UrlLabel>
-          {/* 4. 동적으로 생성된 shareUrl을 value로 사용 */}
           <UrlInput type="text" value={shareUrl} readOnly />
           <CopyButton onClick={copyUrlToClipboard}>{buttonText}</CopyButton>
         </UrlContainer>
@@ -41,7 +35,8 @@ function UnreleasedResult() {
   );
 }
 
-// --- styled-components (기존과 동일) ---
+/* styled-components 동일 */
+
 const Container = styled.div`
   display: flex;
   justify-content: center;
@@ -55,7 +50,7 @@ const Container = styled.div`
   bottom: 0;
   z-index: 1000;
 `;
-// ... (이하 모든 styled-components는 기존과 동일)
+
 const ResultBox = styled.div`
   background-color: #2a2f32;
   padding: 40px;

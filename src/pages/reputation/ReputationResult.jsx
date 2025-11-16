@@ -73,50 +73,54 @@ const wordCloudOptions = {
   deterministic: true,
 };
 
+/**이 부분만 수정 계속 했음 */
 function ReputationResult() {
-  const [searchParams] = useSearchParams();
   const location = useLocation();
 
+  const initialSummary = location.state?.summary ?? null;
+  const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(true);
 
-  const singer = searchParams.get("singer");
-  const title = searchParams.get("title");
-  const { summary } = location.state || {};
-
-  /* 로딩 효과 */
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
-  }, []);
+    // summary가 늦게 도착해도 반영
+    if (initialSummary) setSummary(initialSummary);
+    setLoading(false);
+  }, [initialSummary]);
 
   if (loading) {
     return <LoadingSpinner title="SEARCH" time="잠시만 기다려주세요..." />;
   }
 
   if (!summary) {
-    return <ResultContainer>요청한 데이터가 없습니다.</ResultContainer>;
+    return <ResultContainer>분석 데이터를 불러오지 못했습니다.</ResultContainer>;
   }
 
-  /* -------- Sentiment Data -------- */
-  const sentiment = summary.sentimentSummary;
-  const emotions = summary.emotionDetails;
-  const keywords = summary.keywords || [];
+  // 이후 summary 사용
+
+  const singer = summary.artistName;
+  const title = summary.songTitle;
+
+  // 안전 처리
+  const sentiment = summary.sentimentSummary ?? {};
+  const emotions = summary.emotionDetails ?? {};
+  const keywords = summary.keywords ?? [];
+
+  const pos = Math.round((sentiment.positive ?? 0) * 100);
+  const neg = Math.round((sentiment.negative ?? 0) * 100);
+  const neu = Math.round((sentiment.neutral ?? 0) * 100);
 
   const doughnutData = {
     labels: ["긍정", "부정", "중립"],
     datasets: [
       {
-        data: [
-          Math.round(sentiment.positive * 100),
-          Math.round(sentiment.negative * 100),
-          Math.round(sentiment.neutral * 100),
-        ],
+        data: [pos, neg, neu],
         backgroundColor: ["#4CAF50", "#F44336", "#9E9E9E"],
         borderColor: ["#1D2123"],
         borderWidth: 5,
       },
     ],
   };
+  /**여기 까지 수정 계속 */
 
   const doughnutOptions = {
     maintainAspectRatio: false,

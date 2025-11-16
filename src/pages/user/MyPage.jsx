@@ -5,11 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore.js";
 import api from "../../api/client";
 import axios from "axios";
+import ConfirmModal from "../../components/ConfirmModal.jsx";
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
 const asBool = (v) => v === true || v === "true";
 
-// 취소 판별(컴포넌트 측 보조)
 function isCanceled(e) {
   return (
     axios.isCancel?.(e) ||
@@ -22,10 +22,22 @@ function isCanceled(e) {
 
 function MyPage() {
   const navigate = useNavigate();
-
-  // 로그인 가드용
   const { user, isLoggedIn } = useUserStore();
-  const displayName = useMemo(() => (user?.name || "사용자").trim(), [user]);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState(() => () => {});
+
+  const confirmDelete = (action) => {
+    setConfirmMessage("정말 삭제하시겠습니까?");
+    setConfirmAction(() => action);
+    setConfirmOpen(true);
+  };
+
+  const displayName = useMemo(
+    () => (user?.nickname || user?.name || "사용자").trim(),
+    [user]
+  );
 
   const [repList, setRepList] = useState([]);
   const [peerList, setPeerList] = useState([]);
@@ -45,8 +57,8 @@ function MyPage() {
   const normPeer = useCallback(
     (rows) =>
       asArray(rows).map((r) => ({
-        id: r.id ?? r.postId ?? r.shareId,
-        title: r.title ?? r.filename ?? "무제.zip",
+        id: r.id ?? r.postId,
+        title: r.songTitle || "파일명 없음",
         analyzed:
           r.analyzed ??
           r.isAnalyzed ??
@@ -55,15 +67,16 @@ function MyPage() {
     []
   );
 
-  const normLyrics = useCallback(
+    const normLyrics = useCallback(
     (rows) =>
       asArray(rows).map((r) => ({
-        id: r.id ?? r.analysisId,
-        title: r.title ?? r.fileName ?? "파일",
-        artist: r.artist ?? r.artistName ?? "",
+        id: r.lyricsAnalysisId,
+        title: r.lyricsTitle ?? "제목 없음",
+        createdAt: r.createdAt,
       })),
     []
   );
+
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -78,62 +91,43 @@ function MyPage() {
       try {
         setLoading(true);
 
-        // ✅ StrictMode에서 일부 요청 취소돼도 전체 실패 방지
         const settled = await Promise.allSettled([
           api.get("/user/mypage/reputation-history", { signal: ctrl.signal }),
           api.get("/user/mypage/posts/me", { signal: ctrl.signal }),
           api.get("/user/mypage/lyrics-analyses", { signal: ctrl.signal }),
         ]);
+
         if (!alive) return;
 
         const pick = (i) =>
           settled[i].status === "fulfilled" ? settled[i].value : null;
+
         const repRes = pick(0);
         const peerRes = pick(1);
         const lyricsRes = pick(2);
 
-        // 데이터 설정(성공한 것만 반영)
-        if (repRes) {
-          const repRaw = repRes?.data?.result ?? repRes?.data ?? [];
-          setRepList(normReputation(repRaw));
-        }
-        if (peerRes) {
-          const peerRaw = peerRes?.data?.result ?? peerRes?.data ?? [];
-          setPeerList(normPeer(peerRaw));
-        }
-        if (lyricsRes) {
-          const lyricsRaw = lyricsRes?.data?.result ?? lyricsRes?.data ?? [];
-          setLyricsList(normLyrics(lyricsRaw));
-        }
+        if (repRes) setRepList(normReputation(repRes?.data?.result ?? []));
+        if (peerRes) setPeerList(normPeer(peerRes?.data?.result ?? []));
+        if (lyricsRes) setLyricsList(normLyrics(lyricsRes?.data?.result?.analyses ?? []));
 
-        // 하나라도 "실패"이고, 그 실패가 '취소'가 아닐 때만 경고
-        const nonCanceledErrors = settled
+
+        const errors = settled
           .filter((s) => s.status === "rejected")
           .map((s) => s.reason)
           .filter((e) => !isCanceled(e));
 
-        if (nonCanceledErrors.length > 0) {
-          // 401이면 로그인으로 보냄(첫 건 기준)
-          const first = nonCanceledErrors[0];
+        if (errors.length > 0) {
+          const first = errors[0];
           if (first?.status === 401) {
             navigate("/login", { replace: true, state: { from: "/mypage" } });
             return;
           }
-          console.error("[MyPage] fetch partial error:", nonCanceledErrors);
           alert("마이페이지 일부 데이터를 불러오지 못했습니다.");
         }
       } catch (e) {
-        // 여기까지 오면 진짜 코드 레벨 예외
-        if (isCanceled(e)) return; // 취소는 무시
-        if (e?.status === 401) {
-          navigate("/login", { replace: true, state: { from: "/mypage" } });
-          return;
+        if (!isCanceled(e)) {
+          alert("마이페이지 데이터를 불러오지 못했습니다.");
         }
-        console.error(
-          "[MyPage] fetch error:",
-          e?.response?.data || e.message || e
-        );
-        alert("마이페이지 데이터를 불러오지 못했습니다.");
       } finally {
         if (alive) setLoading(false);
       }
@@ -145,292 +139,275 @@ function MyPage() {
     };
   }, [isLoggedIn, normLyrics, normPeer, normReputation, navigate]);
 
-  const handlePeerReviewClick = (item) => {
-    const analyzed = asBool(item.analyzed);
-    if (analyzed) navigate(`/analysis/unreleased/result/${item.id}`);
-    else alert("아직 분석이 완료되지 않았습니다. 잠시 후 다시 시도해주세요.");
+  /* ----------------------- 버튼 핸들러 ----------------------- */
+
+  const handleReputationClick = async (row) => {
+    try {
+      const res = await api.get(`/user/mypage/reputation-history/${row.id}`);
+      navigate(`/reputation/analysis/${row.id}`, {
+        state: { summary: res?.data?.result },
+      });
+    } catch {
+      alert("분석 데이터를 불러올 수 없습니다.");
+    }
   };
 
-  const confirmDelete = async (fn) => {
-    if (!window.confirm("정말 삭제하시겠습니까?")) return false;
-    await fn();
-    return true;
+  const handlePeerReviewView = (row) => {
+    navigate(`/review/${row.id}`);
   };
 
-  const deleteReputation = async (row) => {
-    const ok = await confirmDelete(() =>
-      api.delete(`/user/mypage/reputation-history/${row.id}`)
-    );
-    if (ok) setRepList((prev) => prev.filter((x) => x.id !== row.id));
+  const handlePeerReviewAnalysis = async (row) => {
+    try {
+      const res = await api.get(`/user/mypage/posts/${row.id}/analysis`);
+      navigate(`/analysis/unreleased/result/${row.id}`, {
+        state: { summary: res.data.result },
+      });
+    } catch {
+      alert("아직 분석 결과가 없습니다.");
+    }
   };
 
-  const deletePeerPost = async (row) => {
-    const ok = await confirmDelete(() =>
-      api.delete(`/user/mypage/posts/${row.id}`)
-    );
-    if (ok) setPeerList((prev) => prev.filter((x) => x.id !== row.id));
+  const deletePeerPost = (row) => {
+    confirmDelete(async () => {
+      await api.delete(`/user/mypage/posts/${row.id}`);
+      setPeerList((prev) => prev.filter((x) => x.id !== row.id));
+    });
   };
 
-  const openLyricsResult = () => {
-    alert("가사 분석 상세는 라우트 연결 후 이동합니다.");
+  const deleteReputation = (row) => {
+    confirmDelete(async () => {
+      await api.delete(`/user/mypage/reputation-history/${row.id}`);
+      setRepList((prev) => prev.filter((x) => x.id !== row.id));
+    });
   };
 
-  const deleteLyrics = async (row) => {
-    const ok = await confirmDelete(() =>
-      api.delete(`/user/mypage/lyrics-analyses/${row.id}`)
-    );
-    if (ok) setLyricsList((prev) => prev.filter((x) => x.id !== row.id));
+  const deleteLyrics = (row) => {
+    confirmDelete(async () => {
+      await api.delete(`/user/mypage/lyrics-analyses/${row.id}`);
+      setLyricsList((prev) => prev.filter((x) => x.id !== row.id));
+    });
   };
 
   return (
     <MyPageContainer>
+      <ConfirmModal
+        open={confirmOpen}
+        message={confirmMessage}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          confirmAction();
+          setConfirmOpen(false);
+        }}
+      />
+
       <TitleRow>
         <TitleLeft>
           <PageTitle>MY PAGE</PageTitle>
-          <Greeting aria-live="polite">{displayName}님 환영합니다</Greeting>
+          <Greeting>{displayName}님 환영합니다</Greeting>
         </TitleLeft>
+
         <RightActions>
           <HeaderLink to="/profile/edit">프로필 수정</HeaderLink>
           <HeaderLink to="/account/withdraw">탈퇴하기</HeaderLink>
         </RightActions>
       </TitleRow>
 
+      {/* ------------------------- 발매곡 ------------------------- */}
       <CardsRow>
         <Card>
-          <CardHeader>발매곡 평판 분석 조회</CardHeader>
-          {loading ? (
-            <List>
-              <ListItem>
-                <ItemText>
-                  <strong>불러오는 중…</strong>
-                </ItemText>
-              </ListItem>
-            </List>
-          ) : (
-            <List>
-              {repList.length === 0 && (
-                <ListItem>
-                  <ItemText>
-                    <strong>내역이 없습니다.</strong>
-                  </ItemText>
-                </ListItem>
-              )}
-              {repList.map((item) => (
-                <ListItem key={String(item.id)}>
-                  <ItemText>
-                    <strong>{item.title}</strong>
-                    <Sub>{item.artist}</Sub>
-                  </ItemText>
-                  <BtnGroup>
-                    <GhostButton
-                      onClick={() =>
-                        alert("평판 재확인은 상세 화면에서 지원됩니다.")
-                      }
-                    >
-                      평판 재확인
-                    </GhostButton>
-                    <GhostButton onClick={() => deleteReputation(item)}>
-                      삭제
-                    </GhostButton>
-                  </BtnGroup>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Card>
-
-        <Card>
-          <CardHeader>미발매곡 - 지인평가 조회</CardHeader>
-          {loading ? (
-            <List>
-              <ListItem>
-                <ItemText>
-                  <strong>불러오는 중…</strong>
-                </ItemText>
-              </ListItem>
-            </List>
-          ) : (
-            <List>
-              {peerList.length === 0 && (
-                <ListItem>
-                  <ItemText>
-                    <strong>내역이 없습니다.</strong>
-                  </ItemText>
-                </ListItem>
-              )}
-              {peerList.map((item) => (
-                <ListItem key={String(item.id)}>
-                  <ItemText>
-                    <strong>{item.title}</strong>
-                  </ItemText>
-                  <BtnGroup>
-                    <GhostButton onClick={() => handlePeerReviewClick(item)}>
-                      {asBool(item.analyzed) ? "결과 확인" : "분석 중"}
-                    </GhostButton>
-                    <GhostButton onClick={() => deletePeerPost(item)}>
-                      삭제
-                    </GhostButton>
-                  </BtnGroup>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Card>
-      </CardsRow>
-
-      <Card>
-        <CardHeader>가사 분석 결과 조회</CardHeader>
-        {loading ? (
+          <CardHeader>발매곡 평판 조회</CardHeader>
           <List>
-            <ListItem>
-              <ItemText>
-                <strong>불러오는 중…</strong>
-              </ItemText>
-            </ListItem>
-          </List>
-        ) : (
-          <List>
-            {lyricsList.length === 0 && (
-              <ListItem>
+            {repList.length === 0 && <Sub>기록이 없습니다.</Sub>}
+
+            {repList.map((row) => (
+              <ListItem key={row.id}>
                 <ItemText>
-                  <strong>내역이 없습니다.</strong>
+                  <strong>{row.title}</strong>
+                  <Sub>{row.artist}</Sub>
                 </ItemText>
-              </ListItem>
-            )}
-            {lyricsList.map((item) => (
-              <ListItem key={String(item.id)}>
-                <ItemText>
-                  <strong>{item.title}</strong>
-                  <Sub>{item.artist}</Sub>
-                </ItemText>
+
                 <BtnGroup>
-                  <GhostButton onClick={() => openLyricsResult(item)}>
-                    조회
+                  <GhostButton onClick={() => handleReputationClick(row)}>
+                    보기
                   </GhostButton>
-                  <GhostButton onClick={() => deleteLyrics(item)}>
+                  <GhostButton onClick={() => deleteReputation(row)}>
                     삭제
                   </GhostButton>
                 </BtnGroup>
               </ListItem>
             ))}
           </List>
-        )}
-      </Card>
+        </Card>
+
+        {/* ------------------------- 지인 평가 ------------------------- */}
+        <Card>
+          <CardHeader>미발매곡 평판 조회</CardHeader>
+          <List>
+            {peerList.length === 0 && <Sub>작성한 게시글이 없습니다.</Sub>}
+
+            {peerList.map((row) => (
+              <ListItem key={row.id}>
+                <ItemText>
+                  <strong>{row.title}</strong>
+                </ItemText>
+
+                <BtnGroup>
+                  <GhostButton onClick={() => handlePeerReviewView(row)}>
+                    지인 평판 확인
+                  </GhostButton>
+
+                  <GhostButton onClick={() => handlePeerReviewAnalysis(row)}>
+                    분석
+                  </GhostButton>
+
+                  <GhostButton onClick={() => deletePeerPost(row)}>
+                    삭제
+                  </GhostButton>
+                </BtnGroup>
+              </ListItem>
+            ))}
+          </List>
+        </Card>
+      </CardsRow>
+
+      {/* ------------------------- 가사 ------------------------- */}
+      <CardsRow>
+        <Card>
+          <CardHeader>가사 감정 분석</CardHeader>
+          <List>
+            {lyricsList.length === 0 && <Sub>분석 내역이 없습니다.</Sub>}
+
+            {lyricsList.map((row) => (
+              <ListItem key={row.id}>
+                <ItemText>
+                  <strong>{row.title}</strong>
+                  <Sub>{row.artist}</Sub>
+                </ItemText>
+
+                <BtnGroup>
+                  <GhostButton onClick={() => navigate(`/analysis/lyrics?analysisId=${row.id}`)}>
+                    보기
+                  </GhostButton>
+                  <GhostButton onClick={() => deleteLyrics(row)}>
+                    삭제
+                  </GhostButton>
+                </BtnGroup>
+              </ListItem>
+            ))}
+          </List>
+        </Card>
+      </CardsRow>
     </MyPageContainer>
   );
 }
 
 export default MyPage;
 
-/* styles */
+/* styled-components 기존 그대로 유지 */
 const MyPageContainer = styled.div`
-  padding: 60px 48px 80px;
+  padding: 0px 48px 80px;
+  color: #fff;
+  width: 100%;
 `;
+
 const TitleRow = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: end;
+  align-items: baseline;
   gap: 24px;
   margin-bottom: 28px;
-  @media (max-width: 800px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
 `;
+
 const TitleLeft = styled.div`
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   gap: 16px;
-  min-width: 0;
 `;
+
 const PageTitle = styled.h1`
   font-size: 72px;
-  line-height: 0.9;
   margin: 0;
   color: #f6cd66;
-  white-space: nowrap;
 `;
+
 const Greeting = styled.span`
   font-size: 16px;
   color: #cfd4d9;
-  white-space: nowrap;
-  transform: translateY(-2px);
 `;
+
 const RightActions = styled.div`
   display: flex;
   align-items: center;
   gap: 18px;
-  padding-right: 6px;
-  @media (max-width: 800px) {
-    justify-content: flex-start;
-    padding-right: 0;
-  }
 `;
+
 const HeaderLink = styled(Link)`
   font-size: 16px;
   color: #cfd4d9;
   text-decoration: none;
-  white-space: nowrap;
+
   &:hover {
     color: #fff;
-    text-decoration: underline;
   }
 `;
+
 const CardsRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   margin-bottom: 24px;
-  @media (max-width: 1100px) {
-    grid-template-columns: 1fr;
-  }
 `;
+
 const Card = styled.section`
   background: #f5f6f7;
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  color: #111;
 `;
+
 const CardHeader = styled.h2`
   margin: 6px 8px 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e1e3e6;
   font-size: 22px;
-  color: #212529;
 `;
+
 const List = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0 6px;
+  max-height: 220px;
+  overflow-y: auto;
 `;
+
 const ListItem = styled.li`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
   padding: 14px 8px;
   border-bottom: 1px solid #e9ecef;
-  &:last-child {
-    border-bottom: none;
-  }
 `;
+
 const ItemText = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
+
   strong {
     font-size: 16px;
-    color: #212529;
   }
 `;
+
 const Sub = styled.span`
   font-size: 12px;
   color: #6c757d;
 `;
+
 const BtnGroup = styled.div`
   display: flex;
-  align-items: center;
   gap: 10px;
 `;
+
 const GhostButton = styled.button`
   height: 34px;
   padding: 0 12px;
@@ -440,7 +417,8 @@ const GhostButton = styled.button`
   color: #111;
   cursor: pointer;
   font-size: 14px;
+
   &:hover {
-    background: #f0f3f5;
+    background: #e9ecef;
   }
 `;
