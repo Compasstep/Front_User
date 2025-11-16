@@ -100,7 +100,7 @@ export default function KeywordSearchResults() {
     (async () => {
       try {
         const res = await api.post(
-          '/user/discovery/keyword',
+          '/user/discovery/keyword', 
           { query: initialKeyword, emotion: initialEmotionLabel || null },
           { timeout: 1500000, signal: controller.signal } // ← 추가: signal 전달
         );
@@ -149,69 +149,89 @@ export default function KeywordSearchResults() {
     navigate(`/discovery/keyword/results?${qs.toString()}`);
   };
 
-  if (status === 'loading') return <LoadingSpinner />;
+  // 🔥 로딩 중인 동안은 무조건 전체 로딩 스피너 유지
+  if (status === 'loading' || results.length === 0) {
+    return <LoadingSpinner title="SEARCH" time="유튜브 데이터를 불러오는 중입니다..." />;
+  }
 
   return (
-    <Container>
-      <Content>
-        <Title>키워드를 입력하고 인사이트를 확인하세요</Title>
-        <SearchWrapper>
-          <DecorativeImage src="/keyword.png" alt="decorative" />
-          <div>
-            <InputGroup>
-              <SearchInput
-                type="text"
-                placeholder="#슬픔 #기쁨 #설렘 #분노 #감동"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                aria-label="키워드 입력"
-              />
-              <SearchButton onClick={handleSearch} aria-label="검색 실행">→</SearchButton>
-            </InputGroup>
-            <InlinePickerWrap>
-              <EmotionPicker
-                value={emotionId}
-                onChange={setEmotionId}
-                onPick={(_, label) => setKeyword(label)}
-                size="sm"
-                columns={6}
-                showHeader={false}
-              />
-            </InlinePickerWrap>
-          </div>
-        </SearchWrapper>
+  <Container>
+    <Content>
 
-        {status === 'error' && <Hint>요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.</Hint>}
-      </Content>
+      <Title>키워드를 입력하고 인사이트를 확인하세요</Title>
 
+      <SearchWrapper>
+        <DecorativeImage src="/keyword.png" alt="decorative" />
+        <div>
+          <InputGroup>
+            <SearchInput
+              type="text"
+              placeholder="#슬픔 #기쁨 #설렘 #분노 #감동"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <SearchButton onClick={handleSearch}>→</SearchButton>
+          </InputGroup>
+
+          <InlinePickerWrap>
+            <EmotionPicker
+              value={emotionId}
+              onChange={setEmotionId}
+              onPick={(_, label) => setKeyword(label)}
+              size="sm"
+              columns={6}
+              showHeader={false}
+            />
+          </InlinePickerWrap>
+        </div>
+      </SearchWrapper>
+
+    </Content>
+
+    {/* ------------ 로딩 스피너 ------------ */}
+    {status === 'loading' && <LoadingSpinner />}
+
+    {/* ------------ 결과 출력 ------------ */}
+    {status === 'idle' && results.length > 0 && (
       <ThumbSection>
         <ThumbGrid>
           {results.slice(0, 4).map((item, idx) => {
             const themes = ['blue', 'pink', 'orange', 'green'];
             const theme = themes[idx % themes.length];
-            const isTarget = (item.title || '').trim().toLowerCase() === 'forget her (studio outtake - 1993)';
             return (
               <ThumbCard key={`${item._key}-${idx}`} $theme={theme}>
                 <ThumbHeader>
-                  <ThumbTitle title={item.title || '제목 없음'} $ff={isTarget ? 'sans-serif' : undefined}>
-                    {item.title || '제목 없음'}
-                  </ThumbTitle>
-                  <ThumbSubtitle title={item.channelName || ''}>{item.channelName || ''}</ThumbSubtitle>
+                  <ThumbTitle>{item.title}</ThumbTitle>
+                  <ThumbSubtitle>{item.channelName}</ThumbSubtitle>
                 </ThumbHeader>
                 <ThumbBody>
-                  <ThumbImage src={item.thumbnailUrl || defaultThumb} alt={item.title || 'thumbnail'} loading="lazy" />
-                  <ThumbDesc>{item.youtubeUrl ? 'YouTube 링크로 이동합니다.' : '링크가 없습니다.'}</ThumbDesc>
-                  {item.youtubeUrl && <ThumbButton href={item.youtubeUrl} target="_blank" rel="noreferrer">보러가기</ThumbButton>}
+                  <ThumbImage src={item.thumbnailUrl || defaultThumb} />
+                  <ThumbDesc>
+                    {item.youtubeUrl ? 'YouTube 링크로 이동합니다.' : '링크가 없습니다.'}
+                  </ThumbDesc>
+                  {item.youtubeUrl && (
+                    <ThumbButton href={item.youtubeUrl} target="_blank">보러가기</ThumbButton>
+                  )}
                 </ThumbBody>
               </ThumbCard>
             );
           })}
-          {results.length === 0 && status === 'idle' && <Empty>검색 결과가 없습니다.</Empty>}
         </ThumbGrid>
       </ThumbSection>
-    </Container>
-  );
+    )}
+
+    {/* ------------ 결과 없음 ------------ */}
+    {status === 'idle' && results.length === 0 && (
+      <Empty>검색 결과가 없습니다.</Empty>
+    )}
+
+    {/* ------------ 오류 문구 (진짜 실패일 때만) ------------ */}
+    {status === 'error' && (
+      <Hint>요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.</Hint>
+    )}
+  </Container>
+);
 }
 
 /* styles (동일) */
@@ -279,7 +299,7 @@ const InputGroup = styled.div`
   padding: 12px 20px;                     /* 좌우 기본 패딩 */
   backdrop-filter: blur(5px);
   transition: box-shadow 0.3s ease-in-out;
-  width: 100%;                            /* 가로 꽉 채우기 */
+  width: 70%;                            /* 가로 꽉 채우기 */
   &:focus-within { box-shadow: 0 0 0 2px #FACD66; }
 `;
 const SearchInput = styled.input`
@@ -318,7 +338,7 @@ const SearchButton = styled.button`
   }
 `;
 const InlinePickerWrap = styled.div`
-  width: 100%;
+  width: 70%;
   margin-top: 10px;
 `;
 const Hint = styled.p`
