@@ -4,6 +4,8 @@ import styled, { css } from 'styled-components';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useUserStore from '../store/userStore.js';
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 function Header() {
   const navigate = useNavigate();
   const { isLoggedIn, logout, user, toggleNav } = useUserStore();
@@ -26,11 +28,11 @@ function Header() {
     <HeaderContainer $isOverlay={isOverlayPage}>
       {isHomePage ? (
         <Logo to="/">
-          <img src="/logo_name.png" alt="Compassstep Logo" />
+            <img src={`${BASE_URL}logo_name.png`} alt="Compassstep Logo" />
         </Logo>
       ) : (
         <SmallLogo to="/">
-          <img src="/logo.png" alt="Compassstep Small Logo" />
+          <img src={`${BASE_URL}logo.png`} alt="Compassstep Small Logo" />
         </SmallLogo>
       )}
 

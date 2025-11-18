@@ -12,7 +12,7 @@ import Lyrics from "./pages/reputation/Lyrics.jsx";
 import Login from "./pages/user/Login.jsx";
 import MyPage from "./pages/user/MyPage.jsx";
 import ProfileEditPage from "./pages/user/ProfileEditPage.jsx";
-import Withdraw from "./pages/user/withdraw.jsx";
+import Withdraw from "./pages/user/Withdraw.jsx";
 
 /* --- 발매곡 평판 --- */
 import Released from "./pages/reputation/Released.jsx";

@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 import EmotionPicker, { EMOTIONS } from '../../components/EmotionPicker.jsx';
 
+const BASE_URL = import.meta.env.BASE_URL;
 function KeywordSearch() {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('idle');
@@ -37,7 +38,7 @@ function KeywordSearch() {
         <Title>키워드를 입력하고 인사이트를 확인하세요</Title>
 
         <SearchWrapper>
-          <DecorativeImage src="/keyword.png" alt="decorative" />
+            <DecorativeImage src={`${BASE_URL}keyword.png`} alt="decorative" />
           <InputColumn>
             <InputGroup>
               <SearchInput
@@ -76,7 +77,7 @@ const fadeInUp   = keyframes`from{opacity:0;transform:translateY(20px)}to{opacit
 
 const Container = styled.div`
   min-height:100vh; display:flex; justify-content:center; align-items:center;
-  background-image:url('/background.png'); background-size:cover; background-position:center;
+    background-image: url('${BASE_URL}background.png'); background-size:cover; background-position:center;
 `;
 const Content = styled.div`display:flex; flex-direction:column; align-items:center; position:relative; z-index:1;`;
 const Title = styled.h2`

@@ -13,7 +13,8 @@ function parseCookie(header = '') {
 }
 
 export default defineConfig({
-  plugins: [
+    base: '/user/',
+    plugins: [
     react(),
     {
       name: 'csrf-injector',

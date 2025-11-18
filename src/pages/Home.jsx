@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 import { Element, scroller } from 'react-scroll';
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 function Home() {
   const handleScrollDown = () => {
     scroller.scrollTo('introSection', {
@@ -37,17 +39,17 @@ function Home() {
             <FeatureItem>
               <FeatureTitle>영감을 담다</FeatureTitle>
               <FeatureDescription>키워드로 새로운 레퍼런스를 찾고,<br />영감의 조각을 모아보세요.</FeatureDescription>
-              <FeatureImage src="/1.jpg" alt="영감을 담다" />
+                <FeatureImage src={`${BASE_URL}1.jpg`} alt="영감을 담다" />
             </FeatureItem>
             <FeatureItem>
               <FeatureTitle>감정을 분석하다</FeatureTitle>
               <FeatureDescription>가사를 분석하여 곡의 분위기를<br />객관적인 데이터로 확인하세요.</FeatureDescription>
-              <FeatureImage src="/2.jpg" alt="감정을 분석하다" />
+                <FeatureImage src={`${BASE_URL}2.jpg`} alt="감정을 분석하다" />
             </FeatureItem>
             <FeatureItem>
               <FeatureTitle>함께 검증하다</FeatureTitle>
               <FeatureDescription>팀원, 동료와 의견을 나누고<br />대중의 반응을 미리 예측하세요.</FeatureDescription>
-              <FeatureImage src="/3.jpg" alt="함께 검증하다" />
+                <FeatureImage src={`${BASE_URL}3.jpg`} alt="함께 검증하다" />
             </FeatureItem>
           </FeatureWrapper>
         </FeatureSection>
