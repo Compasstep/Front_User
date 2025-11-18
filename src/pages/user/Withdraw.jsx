@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import useUserStore from '../../store/userStore.js';
 import api from '../../api/client';   // ★ 추가됨
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 export default function Withdraw() {
   const [agree, setAgree] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -37,7 +39,7 @@ export default function Withdraw() {
 
       <Card>
         <LogoBadge>
-          <img src="/logo.png" alt="Compassstep" />
+            <img src={`${BASE_URL}logo.png`} alt="Compassstep" />
         </LogoBadge>
 
         <CardTitle>Compassstep 탈퇴 전 확인하세요.</CardTitle>

@@ -8,6 +8,8 @@ import EmotionPicker, { EMOTIONS } from '../../components/EmotionPicker.jsx';
 import useUserStore from '../../store/userStore';
 import axios from 'axios'; // ← 추가: 취소 여부 판별용
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 /* animations */
 const fadeInDown = keyframes`from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}`;
 const fadeInUp   = keyframes`from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}`;
@@ -161,7 +163,7 @@ export default function KeywordSearchResults() {
       <Title>키워드를 입력하고 인사이트를 확인하세요</Title>
 
       <SearchWrapper>
-        <DecorativeImage src="/keyword.png" alt="decorative" />
+          <DecorativeImage src={`${BASE_URL}keyword.png`} alt="decorative" />
         <div>
           <InputGroup>
             <SearchInput
@@ -251,7 +253,7 @@ const Container = styled.div`
     top: -70px;
     width: 100%;
     height: calc(100% + 70px);
-    background-image: url('/background.png');
+      background-image: url('${BASE_URL}background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

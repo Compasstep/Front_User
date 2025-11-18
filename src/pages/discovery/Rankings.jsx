@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../api/client';
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 // ── Spotify 장르 키워드 보정: 사용자가 kpop/k pop/k-pop 등 입력해도 "k-pop" 으로 변환
 const normalizeGenre = (raw) => {
   const g = (raw || '').trim().toLowerCase();
@@ -137,7 +139,7 @@ function Rankings() {
           </FilterRow>
         </HeaderContent>
 
-        <PromoImage src="/golden.png" alt="Promo" />
+          <PromoImage src={`${BASE_URL}golden.png`} alt="Promo" />
       </ChartHeader>
 
       {status === 'loading' && <InfoRow>불러오는 중…</InfoRow>}
@@ -153,7 +155,7 @@ function Rankings() {
         {list.map((song) => (
           <SongListItem key={song.rank}>
             <RankNumber>{song.rank}</RankNumber>
-            <AlbumArt src={song.albumImageUrl || '/golden.png'} alt={song.songTitle} />
+            <AlbumArt src={song.albumImageUrl || `${BASE_URL}golden.png`} alt={song.songTitle} />
             <SongInfo>
               <SongTitle>{song.songTitle}</SongTitle>
               <ArtistName>{song.artistName}</ArtistName>

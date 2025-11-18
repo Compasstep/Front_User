@@ -6,12 +6,17 @@ import {
 } from 'react-router-dom';
 import App from './App';
 
-const router = createBrowserRouter([
-  {
-    path: '/*',          // App 내부의 Routes를 그대로 사용
-    element: <App />,
-  },
-]);
+const router = createBrowserRouter(
+    [
+        {
+            path: '/*',          // App 내부의 Routes를 그대로 사용
+            element: <App />,
+        },
+    ],
+    {
+        basename: '/user',
+    }
+);
 
 // [수정됨]
 // 아래 3줄의 GSI 관련 코드를 삭제했습니다.

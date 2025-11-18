@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 
+const base = import.meta.env.BASE_URL || '/';
+
 function UnreleasedResult() {
   const navigate = useNavigate();
   const [buttonText, setButtonText] = useState('주소 복사');
@@ -11,14 +13,58 @@ function UnreleasedResult() {
   const postId = searchParams.get('postId');
 
   // ⭐ 실제 공유 URL은 /review/{postId}
-const shareUrl = `${window.location.origin}/review/${postId}`;
+    const shareUrl = `${window.location.origin}${base}review/${postId}`;
 
-  const copyUrlToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setButtonText('복사 완료!');
-      setTimeout(() => setButtonText('주소 복사'), 2000);
-    });
-  };
+    const copyUrlToClipboard = () => {
+        if (!shareUrl) return;
+
+        const onSuccess = () => {
+            setButtonText('복사 완료!');
+            setTimeout(() => setButtonText('주소 복사'), 2000);
+        };
+
+        const onFail = () => {
+            setButtonText('복사 실패');
+            setTimeout(() => setButtonText('주소 복사'), 2000);
+        };
+
+        // 🔹 폴백 복사 함수 (http 환경 / 구형 브라우저 대응)
+        const fallbackCopy = () => {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = shareUrl;
+                textarea.style.position = 'fixed';
+                textarea.style.top = '-9999px';
+                document.body.appendChild(textarea);
+
+                textarea.focus();
+                textarea.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                if (ok) onSuccess();
+                else onFail();
+            } catch (e) {
+                console.error('fallback copy error:', e);
+                onFail();
+            }
+        };
+
+        // 🔹 https + 지원 브라우저면 Clipboard API 우선 사용
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard
+                .writeText(shareUrl)
+                .then(onSuccess)
+                .catch((err) => {
+                    console.error('clipboard error, fallback 사용:', err);
+                    fallbackCopy();
+                });
+        } else {
+            // http 환경 등에서는 자동으로 폴백
+            fallbackCopy();
+        }
+    };
+
 
   return (
     <Container>

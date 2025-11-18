@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 function Released() {
   const [singer, setSinger] = useState('');
   const [title, setTitle] = useState('');
@@ -51,7 +53,7 @@ function Released() {
         <Title>가수와 제목을 입력하고 평판을 확인하세요</Title>
 
         <SearchWrapper>
-          <DecorativeImage src="/keyword.png" alt="decorative" />
+            <DecorativeImage src={`${BASE_URL}keyword.png`} alt="decorative" />
 
           <InputContainer>
 
@@ -94,7 +96,7 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('/background.png');
+    background-image: url('${BASE_URL}background.png');
   background-size: cover;
   background-position: center;
 `;
