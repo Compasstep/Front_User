@@ -44,10 +44,14 @@ function Login() {
           data?.user ||
           null;
 
+        // 로그인 성공 직후
+        const profileRes = await api.get('/user/profile/info');
+        const profileUser = profileRes?.data?.result;
+
         setLoginState({
           isLoggedIn: true,
-          user,
-          csrfToken,     // ★ 프론트는 이거만 관리
+          user: profileUser,
+          csrfToken,
         });
 
         navigate('/');

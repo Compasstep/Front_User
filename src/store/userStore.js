@@ -54,10 +54,13 @@ async function normalizeUserAsync(nextUser, prevUser = {}) {
     merged.profileImageUrl = await getDownloadUrl(fileKey);
     merged.avatarUrl = merged.profileImageUrl; // 과거 호환
   } else {
-    merged.profileImageUrl = '';
-    merged.avatarUrl = '';
-  }
+  // 🔥 신규 계정 또는 탈퇴 후 재로그인 → 기본 S3 프로필 사용
+  const defaultKey = "image/baseImageLocation.png";  // ★ 백엔드 기본 프로필 key
+  const defaultUrl = await getDownloadUrl(defaultKey);
 
+  merged.profileImageUrl = defaultUrl;
+  merged.avatarUrl = defaultUrl;
+}
   return merged;
 }
 
@@ -89,6 +92,8 @@ const useUserStore = create(
         user = null,
         csrfToken = null,
       }) => {
+        // 🔥 추가: 쿠키 세팅을 기다리게 함 (0ms도 충분하지만 안전하게 10ms)
+        await new Promise(resolve => setTimeout(resolve, 10));
         const newUser = await normalizeUserAsync(user, get().user);
 
         set({

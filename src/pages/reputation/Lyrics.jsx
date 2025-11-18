@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import { requestPresignedUrl, uploadToS3 } from "../../api/s3";
 import api from "../../api/client";
+import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 
 function Lyrics() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -109,7 +110,10 @@ function Lyrics() {
 
   const selectedPart =
     selectedIndex !== null ? analysisData[selectedIndex] : null;
-
+    
+  if (loading) {
+  return <LoadingSpinner title="LYRICS" time="AI가 가사를 분석하고 있습니다..." />;
+}
   return (
     <Wrapper>
       <Container>
