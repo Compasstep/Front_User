@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
+import api from "../../api/client";
+
 
 import {
   Chart as ChartJS,
@@ -86,42 +88,44 @@ function UnreleasedAnalysisResult() {
      TODO 실제 API 호출 (shareId 기반)
      아래 더미를 이후에 실제 API로 교체하면 됨
   ----------------------------------- */
+    /* ============================
+    🔥 AI 분석 결과 실제 API 호출
+  =============================== */
   useEffect(() => {
-    async function fetchData() {
-      try {
-        // 🔥 shareId 로 AI 분석 데이터를 불러오는 API 예정
-        // const res = await api.get(`/analysis/unreleased/${shareId}`);
-        // setSummary(res.data.result);
+  async function fetchData() {
+    setLoading(true);
 
-        // --- MOCK SAMPLE ---
-        const mock = {
-          sentimentSummary: {
-            positive: 0.42,
-            negative: 0.12,
-            neutral: 0.46,
-          },
-          emotionDetails: {
-            joy_happiness: 0.22,
-            sadness_grief: 0.11,
-            caring_love: 0.18,
-            admiration: 0.14,
-            anger_annoyance: 0.04,
-            disgust: 0.01,
-            fear_nervousness: 0.03,
-            gratitude: 0.08,
-            confusion: 0.07,
-            neutral_misc: 0.12,
-          },
-          keywords: ["멜로디", "보컬", "감성", "화음", "코러스", "분위기"],
-        };
-        setSummary(mock);
-      } finally {
-        setLoading(false);
+    try {
+      const res = await api.post("/user/analyze/friend", {
+        postId: Number(shareId),
+      });
+
+      const raw = res?.data?.result;
+
+      if (!raw) {
+        setSummary(null);
+        return;
       }
-    }
 
-    fetchData();
-  }, [shareId]);
+      const mapped = {
+        sentimentSummary: raw.share_summary,
+        emotionDetails: raw.share_details,
+        keywords: raw.keywords ?? [],
+      };
+
+      setSummary(mapped);
+
+    } catch (err) {
+      console.error("[UnreleasedAnalysisResult] error:", err);
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchData();
+}, [shareId]);
+
 
   if (loading) {
     return <LoadingSpinner title="AI ANALYSIS" time="지인 평가 분석 중입니다..." />;
