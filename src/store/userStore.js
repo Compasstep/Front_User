@@ -28,40 +28,40 @@ async function getDownloadUrl(fileKey) {
    user 객체 표준화 + fileKey → presigned URL 변환
 ---------------------------------------------------- */
 async function normalizeUserAsync(nextUser, prevUser = {}) {
-  if (!nextUser && !prevUser) return null;
+    if (!nextUser && !prevUser) return null;
 
-  const merged = {
-    ...(prevUser || {}),
-    ...(nextUser || {}),
-  };
+    const merged = { ...prevUser, ...nextUser };
 
-  // 이름: nickname 우선
-  const nickname = merged.nickname || merged.name;
-  if (nickname) {
-    merged.nickname = nickname;
-    merged.name = nickname;
-  }
+    // nickname 조정
+    const nickname = merged.nickname || merged.name;
+    if (nickname) {
+        merged.nickname = nickname;
+        merged.name = nickname;
+    }
 
-  // 파일 키 읽기 (profileImageUrl 또는 avatarUrl 이름으로 내려올 수 있음)
-  const fileKey =
-    merged.profileImageUrl ||
-    merged.avatarUrl ||
-    merged.profileImageKey ||
-    '';
+    // DB에서 받은 key 우선
+    const fileKey =
+        merged.profileImageKey ||
+        merged.profileImageUrl ||
+        merged.avatarUrl ||
+        "";
 
-  if (fileKey) {
-    // fileKey → S3 presigned 다운로드 URL
-    merged.profileImageUrl = await getDownloadUrl(fileKey);
-    merged.avatarUrl = merged.profileImageUrl; // 과거 호환
-  } else {
-  // 🔥 신규 계정 또는 탈퇴 후 재로그인 → 기본 S3 프로필 사용
-  const defaultKey = "image/baseImageLocation.png";  // ★ 백엔드 기본 프로필 key
-  const defaultUrl = await getDownloadUrl(defaultKey);
+    if (fileKey) {
+        const pureKey = fileKey.includes("amazonaws.com")
+            ? extractKeyFromPresigned(fileKey)
+            : fileKey;
 
-  merged.profileImageUrl = defaultUrl;
-  merged.avatarUrl = defaultUrl;
-}
-  return merged;
+        merged.profileImageKey = pureKey;  // 서버용 key ⭐
+        merged.profileImageUrl = await getDownloadUrl(pureKey); // FE보기용 presigned
+        merged.avatarUrl = merged.profileImageUrl;
+    } else {
+        const defaultKey = "image/baseImageLocation.png";
+        merged.profileImageKey = defaultKey;
+        merged.profileImageUrl = await getDownloadUrl(defaultKey);
+        merged.avatarUrl = merged.profileImageUrl;
+    }
+
+    return merged;
 }
 
 /* ----------------------------------------------------

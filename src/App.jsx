@@ -1,5 +1,6 @@
 // src/App.jsx
 
+
 import { Routes, Route } from "react-router-dom";
 import GlobalStyle from "./styles/GlobalStyle.jsx";
 import Layout from "./components/Layout.jsx";
@@ -34,6 +35,7 @@ import PeerReview from "./pages/reputation/PeerReview.jsx";
 function App() {
   return (
     <>
+
       <GlobalStyle />
 
       <Routes>
