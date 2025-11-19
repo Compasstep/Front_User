@@ -13,19 +13,29 @@ function parseCookie(header = '') {
 }
 
 export default defineConfig({
-    base: '/user/',
-    plugins: [
+  base: '/user/',
+  plugins: [
     react(),
     {
       name: 'csrf-injector',
       configureServer(server) {
-        server.middlewares.use((req, _res, next) => {
+        server.middlewares.use((req, res, next) => {
+
+          // 추가된 리다이렉트 로직
+          if (req.url === '/user') {
+            res.statusCode = 301;
+            res.setHeader('Location', '/user/');
+            return res.end();
+          }
+          // 끝
+
           if (req.url && req.url.startsWith('/api')) {
             const cookies = parseCookie(req.headers.cookie || '');
             if (!req.headers['x-csrf-token'] && cookies['csrf_token']) {
               req.headers['x-csrf-token'] = cookies['csrf_token'];
             }
           }
+
           next();
         });
       },

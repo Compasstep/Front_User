@@ -1,5 +1,5 @@
 // src/App.jsx
-import NormalizeSlash from "./NormalizeSlash";
+
 
 import { Routes, Route } from "react-router-dom";
 import GlobalStyle from "./styles/GlobalStyle.jsx";
@@ -35,7 +35,7 @@ import PeerReview from "./pages/reputation/PeerReview.jsx";
 function App() {
   return (
     <>
-        <NormalizeSlash />
+
       <GlobalStyle />
 
       <Routes>
