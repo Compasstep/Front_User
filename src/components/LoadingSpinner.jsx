@@ -38,7 +38,7 @@ const FullScreenWrapper = styled.div`
   justify-content: center;
   align-items: center;
 
-  background-color: #111;
+  background-color: #1D2123;
   animation: ${fadeIn} 0.3s ease-out;
 
   z-index: 99999; /* UI 완전 위 */

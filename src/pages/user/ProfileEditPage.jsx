@@ -106,22 +106,41 @@ function ProfileEditPage() {
     setMessage('');
 
     try {
-      // 🔥 전역 store API 이용 (닉네임 + 프로필 이미지 + /profile/info 재조회)
-      const updated = await store.updateProfile({
-        nickname: name,
-        avatarUrl: photoUrl, // fileKey
+      // 1) 닉네임 먼저 PATCH
+      if (name !== user?.nickname && name !== user?.name) {
+        await api.patch("/user/profile/nickname", {
+          nickname: name,
+        });
+      }
+
+      // 2) 이미지 다음에 PATCH
+      if (photoUrl && photoUrl !== (user?.profileImageUrl || user?.avatarUrl)) {
+        await api.patch("/user/profile/image", {
+          fileKey: photoUrl,
+        });
+      }
+
+      // 3) 최신 프로필 다시 GET
+      const res = await api.get("/user/profile/info");
+      const updated = res?.data?.result;
+
+      // 4) 전역 상태 갱신
+      store.setLoginState({
+        isLoggedIn: true,
+        user: updated,
       });
 
-      // 로컬 상태도 최신값으로 맞춰줌
-      setName(updated?.nickname || name);
-      setEmail(updated?.email || email);
-      setPhotoUrl(updated?.profileImageUrl || updated?.avatarUrl || photoUrl);
+      // 5) 로컬 상태도 최신화
+      setName(updated?.nickname || updated?.name || "");
+      setEmail(updated?.email || "");
+      setPhotoUrl(updated?.profileImageUrl || updated?.avatarUrl || "");
 
-      setMessage('저장되었습니다.');
+      setMessage("저장되었습니다.");
       setTimeout(() => navigate(-1), 600);
+
     } catch (err) {
       console.error(err);
-      setMessage(err?.message || '저장 중 오류가 발생했습니다.');
+      setMessage(err?.message || "저장 중 오류가 발생했습니다.");
     } finally {
       setIsSaving(false);
     }

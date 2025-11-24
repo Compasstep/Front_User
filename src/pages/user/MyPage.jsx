@@ -6,6 +6,7 @@ import useUserStore from "../../store/userStore.js";
 import api from "../../api/client";
 import axios from "axios";
 import ConfirmModal from "../../components/ConfirmModal.jsx";
+import { showToast } from "../../utils/globalToast";
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
 const asBool = (v) => v === true || v === "true";
@@ -122,11 +123,11 @@ function MyPage() {
             navigate("/login", { replace: true, state: { from: "/mypage" } });
             return;
           }
-          alert("마이페이지 일부 데이터를 불러오지 못했습니다.");
+          showToast("마이페이지 일부 데이터를 불러오지 못했습니다.");
         }
       } catch (e) {
         if (!isCanceled(e)) {
-          alert("마이페이지 데이터를 불러오지 못했습니다.");
+          showToast("마이페이지 데이터를 불러오지 못했습니다.");
         }
       } finally {
         if (alive) setLoading(false);
@@ -148,7 +149,7 @@ function MyPage() {
         state: { summary: res?.data?.result },
       });
     } catch {
-      alert("분석 데이터를 불러올 수 없습니다.");
+      showToast("분석 데이터를 불러올 수 없습니다.");
     }
   };
 
@@ -163,7 +164,7 @@ function MyPage() {
         state: { summary: res.data.result },
       });
     } catch {
-      alert("아직 분석 결과가 없습니다.");
+      showToast("아직 분석 결과가 없습니다.");
     }
   };
 
@@ -285,7 +286,7 @@ function MyPage() {
                 </ItemText>
 
                 <BtnGroup>
-                  <GhostButton onClick={() => navigate(`/analysis/lyrics?analysisId=${row.id}`)}>
+                  <GhostButton onClick={() => navigate(`/analysis/lyrics/result/${row.id}`)}>
                     보기
                   </GhostButton>
                   <GhostButton onClick={() => deleteLyrics(row)}>
@@ -303,11 +304,22 @@ function MyPage() {
 
 export default MyPage;
 
-/* styled-components 기존 그대로 유지 */
+/* =============================
+   MyPage 스타일 (반응형 적용)
+============================= */
+
 const MyPageContainer = styled.div`
   padding: 0px 48px 80px;
   color: #fff;
   width: 100%;
+
+  @media (max-width: 1024px) {
+    padding: 0 32px 60px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 16px 40px;
+  }
 `;
 
 const TitleRow = styled.div`
@@ -316,29 +328,60 @@ const TitleRow = styled.div`
   align-items: baseline;
   gap: 24px;
   margin-bottom: 28px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 `;
 
 const TitleLeft = styled.div`
   display: flex;
   align-items: baseline;
   gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
 `;
 
 const PageTitle = styled.h1`
   font-size: 72px;
   margin: 0;
   color: #f6cd66;
+
+  @media (max-width: 1024px) {
+    font-size: 56px;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 40px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 32px;
+  }
 `;
 
 const Greeting = styled.span`
   font-size: 16px;
   color: #cfd4d9;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 const RightActions = styled.div`
   display: flex;
   align-items: center;
   gap: 18px;
+
+  @media (max-width: 768px) {
+    justify-content: flex-start;
+  }
 `;
 
 const HeaderLink = styled(Link)`
@@ -349,6 +392,10 @@ const HeaderLink = styled(Link)`
   &:hover {
     color: #fff;
   }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `;
 
 const CardsRow = styled.div`
@@ -356,6 +403,14 @@ const CardsRow = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   margin-bottom: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 768px) {
+    gap: 16px;
+  }
 `;
 
 const Card = styled.section`
@@ -363,6 +418,10 @@ const Card = styled.section`
   border-radius: 12px;
   padding: 16px;
   color: #111;
+
+  @media (max-width: 768px) {
+    padding: 14px;
+  }
 `;
 
 const CardHeader = styled.h2`
@@ -370,6 +429,10 @@ const CardHeader = styled.h2`
   padding-bottom: 10px;
   border-bottom: 1px solid #e1e3e6;
   font-size: 22px;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 `;
 
 const List = styled.ul`
@@ -378,6 +441,10 @@ const List = styled.ul`
   padding: 0 6px;
   max-height: 220px;
   overflow-y: auto;
+
+  @media (max-width: 768px) {
+    padding: 0 2px;
+  }
 `;
 
 const ListItem = styled.li`
@@ -386,6 +453,12 @@ const ListItem = styled.li`
   align-items: center;
   padding: 14px 8px;
   border-bottom: 1px solid #e9ecef;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px 6px;
+  }
 `;
 
 const ItemText = styled.div`
@@ -396,16 +469,32 @@ const ItemText = styled.div`
   strong {
     font-size: 16px;
   }
+
+  @media (max-width: 768px) {
+    strong {
+      font-size: 14px;
+    }
+  }
 `;
 
 const Sub = styled.span`
   font-size: 12px;
   color: #6c757d;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+  }
 `;
 
 const BtnGroup = styled.div`
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    gap: 6px;
+  }
 `;
 
 const GhostButton = styled.button`
@@ -417,8 +506,16 @@ const GhostButton = styled.button`
   color: #111;
   cursor: pointer;
   font-size: 14px;
+  white-space: nowrap;
 
   &:hover {
     background: #e9ecef;
   }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    font-size: 13px;
+    height: 36px;
+  }
 `;
+

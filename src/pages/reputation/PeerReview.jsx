@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import StarRating from "../../components/StarRating.jsx";
-import Comment from "../../components/Comment2.jsx";
+import Comment from "../../components/Comment.jsx";
+import { showToast } from "../../utils/globalToast";
 
 function PeerReview() {
   const { reviewId } = useParams();
@@ -84,7 +85,7 @@ function PeerReview() {
         });
       } catch (err) {
         console.error("[PeerReview] 상세 조회 실패", err);
-        alert("게시글을 불러오는 중 오류가 발생했습니다.");
+        showToast("게시글을 불러오는 중 오류가 발생했습니다.");
       } finally {
         setLoading(false);
       }
@@ -97,8 +98,8 @@ function PeerReview() {
       2) 댓글 작성
   ----------------------------------------------------------- */
   const handleSubmit = async () => {
-    if (!myRating) return alert("별점을 입력해주세요.");
-    if (!myComment.trim()) return alert("댓글을 입력해주세요.");
+    if (!myRating) return showToast("별점을 입력해주세요.");
+    if (!myComment.trim()) return showToast("댓글을 입력해주세요.");
 
     try {
       await fetch(`/posts/${reviewId}/comments`, {
@@ -122,7 +123,7 @@ function PeerReview() {
       setMyComment("");
     } catch (err) {
       console.error("[댓글 작성 실패]", err);
-      alert("댓글 작성 중 오류가 발생했습니다.");
+      showToast("댓글 작성 중 오류가 발생했습니다.");
     }
   };
 

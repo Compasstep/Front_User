@@ -12,10 +12,12 @@ function Layout() {
 
   const bootstrapAuth = useUserStore((s) => s.bootstrapAuth);
 
-  // 🔥 앱이 Layout을 로드할 때마다 user 최신화
   useEffect(() => {
+  const hasCsrf = document.cookie.includes("csrf_token");
+  if (hasCsrf) {
     bootstrapAuth();
-  }, [bootstrapAuth]);
+  }
+}, [bootstrapAuth]);
 
   const isSpecialLayout =
     location.pathname === '/' ||

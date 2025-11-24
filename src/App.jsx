@@ -1,14 +1,17 @@
 // src/App.jsx
 
-
 import { Routes, Route } from "react-router-dom";
 import GlobalStyle from "./styles/GlobalStyle.jsx";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
+/* ---------------- Toast Provider ---------------- */
+import { ToastProvider } from "./context/ToastContext";
+
 /* ---------------- 페이지 import ---------------- */
 import Home from "./pages/Home.jsx";
 import Lyrics from "./pages/reputation/Lyrics.jsx";
+import LyricsResult from "./pages/reputation/LyricsResult.jsx";
 
 import Login from "./pages/user/Login.jsx";
 import MyPage from "./pages/user/MyPage.jsx";
@@ -34,16 +37,14 @@ import PeerReview from "./pages/reputation/PeerReview.jsx";
 
 function App() {
   return (
-    <>
-
+    <ToastProvider>
       <GlobalStyle />
 
       <Routes>
-        {/* ----------------------- 로그인 페이지 ----------------------- */}
+        {/* ----------------------- 로그인 ----------------------- */}
         <Route path="/login" element={<Login />} />
 
-        {/* ---------------- 공유 리뷰 페이지 (비로그인 허용) ---------------- */}
-        {/* 지인들이 들어오는 공유 URL */}
+        {/* ----------------------- 공유 리뷰 (비로그인 허용) ----------------------- */}
         <Route path="/review/:reviewId" element={<PeerReview />} />
 
         {/* ------------------------ 공통 레이아웃 ------------------------ */}
@@ -52,12 +53,12 @@ function App() {
 
           {/* ------------------------ 🔒 보호 라우팅 ------------------------ */}
           <Route element={<ProtectedRoute />}>
-            {/* 마이페이지 */}
+            {/* ---------------- 마이페이지 ---------------- */}
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/profile/edit" element={<ProfileEditPage />} />
             <Route path="/account/withdraw" element={<Withdraw />} />
 
-            {/* 발매곡 평판 */}
+            {/* ---------------- 발매곡 평판 ---------------- */}
             <Route path="/analysis/reputation" element={<Released />} />
             <Route
               path="/reputation/analysis/:historyId"
@@ -68,14 +69,17 @@ function App() {
               element={<ReputationResult />}
             />
 
+            {/* ---------------- 가사 분석 결과 (먼저 배치!) ---------------- */}
+            <Route
+              path="/analysis/lyrics/result/:lyricsId"
+              element={<LyricsResult />}
+            />
 
-            {/* 가사 분석 */}
+            {/* ---------------- 가사 업로드/분석 ---------------- */}
             <Route path="/analysis/lyrics" element={<Lyrics />} />
 
-            {/* 미발매곡 게시글 목록 */}
+            {/* ---------------- 미발매곡 ---------------- */}
             <Route path="/analysis/unreleased" element={<Unreleased />} />
-
-            {/* 미발매곡 분석 결과 페이지 */}
             <Route
               path="/analysis/unreleased/result"
               element={<UnreleasedResult />}
@@ -85,18 +89,17 @@ function App() {
               element={<UnreleasedAnalysisResult />}
             />
 
-            {/* Discovery */}
+            {/* ---------------- Discovery ---------------- */}
             <Route path="/discovery/keyword" element={<KeywordSearch />} />
             <Route
               path="/discovery/keyword/results"
               element={<KeywordSearchResults />}
             />
-
             <Route path="/rankings" element={<Rankings />} />
           </Route>
         </Route>
       </Routes>
-    </>
+    </ToastProvider>
   );
 }
 

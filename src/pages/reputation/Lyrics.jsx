@@ -1,55 +1,17 @@
-import { useState, useRef, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { requestPresignedUrl, uploadToS3 } from "../../api/s3";
 import api from "../../api/client";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
+import { showToast } from "../../utils/globalToast";
 
 function Lyrics() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [analysisData, setAnalysisData] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef(null);
-
-  // 🔥 URL 파라미터 기반 상세 조회 모드
-  const [searchParams] = useSearchParams();
-  const existingId = searchParams.get("analysisId");
-
-  /* ==========================
-     🔥 상세조회 자동 로딩
-  ========================== */
-  useEffect(() => {
-    if (!existingId) return;
-
-    (async () => {
-      try {
-        setLoading(true);
-
-        const res = await api.get(`/user/mypage/lyrics-analyses/${existingId}`);
-        const result = res.data.result;
-
-        // 파일명 표시
-        setUploadedFiles([
-          {
-            id: existingId,
-            name: result.lyricsTitle || "가사",
-            size: "",
-            fileObject: null,
-          },
-        ]);
-
-        // 분석 결과 표시
-        setAnalysisData(result.analysisResult?.analysisData || []);
-        setSelectedIndex(null);
-      } catch {
-        alert("가사 분석 결과를 불러올 수 없습니다.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [existingId]);
+  const navigate = useNavigate();
 
   const handleChooseFile = () => fileInputRef.current.click();
 
@@ -70,7 +32,7 @@ function Lyrics() {
 
   const handleAnalysis = async () => {
     if (uploadedFiles.length === 0) {
-      alert("TXT 파일을 업로드해주세요.");
+      showToast("TXT 파일을 업로드해주세요.");
       return;
     }
 
@@ -79,8 +41,6 @@ function Lyrics() {
 
     try {
       setLoading(true);
-      setAnalysisData(null);
-      setSelectedIndex(null);
 
       const { presignedUrl, fileKey } = await requestPresignedUrl(file, {
         fileType: "lyrics",
@@ -95,29 +55,30 @@ function Lyrics() {
 
       const lyricsId = metaRes?.data?.result?.content_id;
 
-      const aiRes = await api.post("/user/analyze/lyrics", {
-        lyricsId,
-      });
+      await api.post("/user/analyze/lyrics", { lyricsId });
 
-      setAnalysisData(aiRes.data.result.analysisData);
+      // 🔥 분석 완료 → 결과 페이지로 이동
+      navigate(`/analysis/lyrics/result/${lyricsId}`);
     } catch (err) {
       console.error(err);
-      alert("가사 분석 중 오류가 발생했습니다.");
+      showToast("가사 분석 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedPart =
-    selectedIndex !== null ? analysisData[selectedIndex] : null;
-    
   if (loading) {
-  return <LoadingSpinner title="LYRICS" time="AI가 가사를 분석하고 있습니다..." />;
-}
+    return (
+      <LoadingSpinner
+        title="LYRICS"
+        time="AI가 가사를 분석하고 있습니다..."
+      />
+    );
+  }
+
   return (
     <Wrapper>
       <Container>
-        {/* Left Panel */}
         <UploadPanel>
           <Title>💬 가사 데이터 입력</Title>
 
@@ -153,54 +114,15 @@ function Lyrics() {
           </FileList>
 
           <AnalyzeButton disabled={loading} onClick={handleAnalysis}>
-            {loading ? "Analyzing..." : "Analyze & get Vocal Guide"}
+            Analyze & get Vocal Guide
           </AnalyzeButton>
         </UploadPanel>
-
-        {/* Right Panel */}
-        <ResultPanel>
-          <Title>📊 AI 분석하기</Title>
-
-          <ResultBox>
-            <h3>🎼 가사</h3>
-
-            {analysisData ? (
-              <LyricList>
-                {analysisData.map((item, idx) => (
-                  <LyricLine
-                    key={idx}
-                    $active={selectedIndex === idx}
-                    onClick={() => setSelectedIndex(idx)}
-                  >
-                    {item.part}
-                  </LyricLine>
-                ))}
-              </LyricList>
-            ) : (
-              <p>AI 감정 분석 결과가 여기에 표시됩니다.</p>
-            )}
-          </ResultBox>
-
-          <ResultBox>
-            <h3>🤖 AI 보컬 가이드</h3>
-
-            {selectedPart ? (
-              <CoachingBox>
-                <OpenAIIcon>🌀</OpenAIIcon>
-                <p>{selectedPart.coaching}</p>
-              </CoachingBox>
-            ) : (
-              <p>가사 한 줄을 클릭하면 보컬 가이드가 표시됩니다.</p>
-            )}
-          </ResultBox>
-        </ResultPanel>
       </Container>
     </Wrapper>
   );
 }
 
 export default Lyrics;
-
 
 /* ====================== Styled Components ====================== */
 
@@ -212,9 +134,7 @@ const Wrapper = styled.div`
 
 const Container = styled.div`
   display: flex;
-  gap: 40px;
   padding: 40px;
-
 `;
 
 const Panel = styled.div`
@@ -228,7 +148,6 @@ const Panel = styled.div`
 `;
 
 const UploadPanel = styled(Panel)``;
-const ResultPanel = styled(Panel)``;
 
 const Title = styled.h1`
   font-weight: bold;
@@ -315,56 +234,4 @@ const AnalyzeButton = styled.button`
   &:hover {
     background: #357ae8;
   }
-`;
-
-const ResultBox = styled.div`
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
-  margin-bottom: 20px;
-  flex-shrink: 0;
-
-  h3 {
-    margin-bottom: 15px;
-  }
-`;
-
-const LyricList = styled.div`
-  background: #111;
-  color: white;
-  border-radius: 12px;
-  padding: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-
-  /* 🔥 부모(ResultBox) padding 때문에 튀어나오는 문제 해결 */
-  margin: 0 5px; 
-`;
-
-const LyricLine = styled.div`
-  padding: 12px;
-  border-radius: 10px;
-  background: ${(p) => (p.$active ? "#4285f4" : "#222")};
-  margin-bottom: 8px;
-  cursor: pointer;
-
-  &:hover {
-    background: ${(p) => (p.$active ? "#357ae8" : "#333")};
-  }
-`;
-
-
-const CoachingBox = styled.div`
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 12px;
-  line-height: 1.6;
-  display: flex;
-  gap: 12px;
-`;
-
-const OpenAIIcon = styled.div`
-  font-size: 26px;
-  margin-top: 4px;
 `;
