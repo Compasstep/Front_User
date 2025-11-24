@@ -5,6 +5,7 @@ import styled from "styled-components";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 import { requestPresignedUrl, uploadToS3 } from "../../api/s3";
 import api from "../../api/client";
+import { showToast } from "../../utils/globalToast";
 
 function Unreleased() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -40,7 +41,7 @@ function Unreleased() {
   ------------------------------------------------------ */
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) {
-      alert("업로드할 파일을 선택해주세요.");
+      showToast("업로드할 파일을 선택해주세요.");
       return;
     }
 
@@ -81,7 +82,7 @@ function Unreleased() {
       navigate(`/analysis/unreleased/result?postId=${postId}`);
     } catch (err) {
       console.error("[Unreleased Upload Error]", err);
-      alert("업로드 중 오류가 발생했습니다. 다시 시도해주세요.");
+      showToast("업로드 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setIsUploading(false);
     }

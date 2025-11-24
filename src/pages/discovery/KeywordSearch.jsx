@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 import EmotionPicker, { EMOTIONS } from '../../components/EmotionPicker.jsx';
+import { showToast } from "../../utils/globalToast";
 
 const BASE_URL = import.meta.env.BASE_URL;
 function KeywordSearch() {
@@ -18,7 +19,7 @@ function KeywordSearch() {
 
   const handleSearch = () => {
     const q = (keyword || '').trim();
-    if (!q) return alert('키워드를 입력해주세요.');
+    if (!q) return showToast('키워드를 입력해주세요.');
     setStatus('loading');
 
     const qs = new URLSearchParams();

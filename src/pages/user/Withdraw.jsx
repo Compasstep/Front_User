@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import useUserStore from '../../store/userStore.js';
 import api from '../../api/client';   // ★ 추가됨
+import { showToast } from "../../utils/globalToast";
 
 const BASE_URL = import.meta.env.BASE_URL;
 
@@ -28,7 +29,7 @@ export default function Withdraw() {
     navigate('/login', { replace: true });
   } catch (err) {
     console.error(err);
-    alert('탈퇴 중 오류가 발생했습니다.');
+    showToast('탈퇴 중 오류가 발생했습니다.');
   }
 };
 

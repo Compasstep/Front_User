@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { requestPresignedUrl, uploadToS3 } from "../api/s3";  // ★ 추가
+import { showToast } from "../../utils/globalToast";
+
 
 function ImageUploader({ onUploadComplete }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -20,7 +22,7 @@ function ImageUploader({ onUploadComplete }) {
 
   // presigned URL 요청 + 실제 업로드 + 최종 URL 부모에게 전달
   const handleUpload = async () => {
-    if (!selectedFile) return alert("이미지를 선택해주세요.");
+    if (!selectedFile) return showToast("이미지를 선택해주세요.");
 
     try {
       // 1) presigned URL 요청
@@ -38,7 +40,7 @@ function ImageUploader({ onUploadComplete }) {
       }
     } catch (err) {
       console.error(err);
-      alert("업로드 중 오류가 발생했습니다.");
+      showToast("업로드 중 오류가 발생했습니다.");
     }
   };
 

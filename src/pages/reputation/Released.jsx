@@ -5,6 +5,7 @@ import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import LoadingSpinner from '../../components/LoadingSpinner.jsx';
+import { showToast } from "../../utils/globalToast";
 
 const BASE_URL = import.meta.env.BASE_URL;
 
@@ -16,7 +17,7 @@ function Released() {
 
   const handleAnalysis = async () => {
     if (!singer || !title) {
-      alert('가수와 제목을 모두 입력해주세요.');
+      showToast('가수와 제목을 모두 입력해주세요.');
       return;
     }
 
@@ -37,7 +38,7 @@ function Released() {
       );
     } catch (err) {
       console.error("평판 분석 오류:", err);
-      alert("평판 분석 중 오류가 발생했습니다.");
+      showToast("평판 분석 중 오류가 발생했습니다.");
       setStatus('idle');
     }
   };

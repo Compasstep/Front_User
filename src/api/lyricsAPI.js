@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { requestPresignedUrl, uploadToS3 } from '../../api/s3';
 import api from '../../api/client';
+import { showToast } from '../../utils/globalToast';   // ★ 추가
 
 function Lyrics() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -20,28 +21,28 @@ function Lyrics() {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
 
-    const newFiles = files.map(file => ({
+    const newFiles = files.map((file) => ({
       id: file.name + Date.now(),
       name: file.name,
       size: `${(file.size / 1024).toFixed(1)} KB`,
       fileObject: file,
     }));
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
   };
 
   const handleDeleteFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   /* ---------------------------- 분석 실행 ---------------------------- */
   const handleAnalysis = async () => {
     if (uploadedFiles.length === 0) {
-      alert('분석할 가사 파일을 업로드해주세요.');
+      showToast('분석할 가사 파일을 업로드해주세요.');
       return;
     }
 
-    const file = uploadedFiles[0].fileObject; // 단일 파일 분석 기준
+    const file = uploadedFiles[0].fileObject; 
     setLoading(true);
 
     try {
@@ -53,7 +54,7 @@ function Lyrics() {
       });
 
       if (!presigned?.presignedURL || !presigned?.fileKey) {
-        alert("Presigned URL 발급 실패");
+        showToast("Presigned URL 발급 실패");
         return;
       }
 
@@ -72,7 +73,7 @@ function Lyrics() {
 
       const lyricsId = metaRes?.data?.result?.content_id;
       if (!lyricsId) {
-        alert("가사 파일 저장 실패 (lyricsId 없음)");
+        showToast("가사 파일 저장 실패 (lyricsId 없음)");
         return;
       }
 
@@ -80,15 +81,15 @@ function Lyrics() {
        4) 분석 요청 API 호출
       ----------------------------------------------------------- */
       const analysisRes = await api.post("/user/analyze/lyrics", {
-        lyricsId: lyricsId,
+        lyricsId,
       });
 
       setAnalysisResult(analysisRes?.data?.result);
-      alert("가사 분석이 완료되었습니다.");
+      showToast("가사 분석이 완료되었습니다.");
 
     } catch (err) {
       console.error(err);
-      alert("가사 분석 중 오류가 발생했습니다.");
+      showToast("가사 분석 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -97,6 +98,7 @@ function Lyrics() {
   return (
     <LyricsPageWrapper>
       <Container>
+        
         {/* ---------------- 좌측: 파일 업로드 패널 ---------------- */}
         <UploadPanel>
           <Title>Your Lyrics Here</Title>
@@ -158,6 +160,7 @@ function Lyrics() {
             <p>라인별 코칭은 위 JSON 데이터 안에 포함되어 있습니다.</p>
           </ResultBox>
         </ResultPanel>
+
       </Container>
     </LyricsPageWrapper>
   );

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../api/client';
+import { showToast } from "../../utils/globalToast";
 
 const BASE_URL = import.meta.env.BASE_URL;
 
@@ -78,11 +79,11 @@ function Rankings() {
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
       } else {
-        alert('해당 곡의 유튜브 링크를 찾지 못했습니다.');
+        showToast('해당 곡의 유튜브 링크를 찾지 못했습니다.');
       }
     } catch (e) {
       console.error('[Rankings] youtube-link error:', e);
-      alert('유튜브 링크 조회 중 오류가 발생했습니다.');
+      showToast('유튜브 링크 조회 중 오류가 발생했습니다.');
     } finally {
       setYtLoadingId(null);
     }
