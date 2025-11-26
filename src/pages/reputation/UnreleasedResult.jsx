@@ -69,7 +69,7 @@ function UnreleasedResult() {
   return (
     <Container>
       <ResultBox>
-        <Title>RESULT</Title>
+        <Title>평가 링크를 공유하세요</Title>
         <UrlContainer>
           <UrlLabel>공유 URL</UrlLabel>
           <UrlInput type="text" value={shareUrl} readOnly />
