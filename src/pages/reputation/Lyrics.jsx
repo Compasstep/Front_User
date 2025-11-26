@@ -127,111 +127,165 @@ export default Lyrics;
 /* ====================== Styled Components ====================== */
 
 const Wrapper = styled.div`
+  background: #1d2123;
+  min-height: 100vh;
+  padding: 60px 20px;
+  display: flex;
+  justify-content: center;
+  color: #fff;
+
   &, * {
     font-family: "Quicksand", sans-serif;
   }
 `;
 
 const Container = styled.div`
-  display: flex;
-  padding: 40px;
-`;
-
-const Panel = styled.div`
-  background-color: #eef1f7;
-  color: #1d2123;
-  padding: 30px;
-  border-radius: 16px;
-  flex: 1;
+  width: 100%;
+  max-width: 620px;
   display: flex;
   flex-direction: column;
+  align-items: center;
 `;
 
-const UploadPanel = styled(Panel)``;
+const UploadPanel = styled.div`
+  background-color: #f8fafc;
+  color: #1d2123;
+  border-radius: 22px;
+  padding: 32px;
+  width: 100%;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+`;
 
 const Title = styled.h1`
-  font-weight: bold;
-  margin-bottom: 20px;
+  font-family: "Anton", sans-serif;
+  font-size: 2.2rem;
+  color: #1d2123;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  text-align: center;
 `;
 
 const FileUploaderBox = styled.div`
   background: #fff;
-  padding: 10px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  padding: 14px;
+  border-radius: 14px;
 `;
 
 const FileUploader = styled.div`
-  border: 2px dashed #dde2ec;
-  border-radius: 12px;
+  border: 2px dashed rgba(150, 160, 180, 0.4);
+  border-radius: 14px;
   padding: 40px;
   text-align: center;
   cursor: pointer;
+  background: #ffffff;
+  transition: 0.25s ease;
+
+  &:hover {
+    background: #f3f6ff;
+    border-color: #8fa8ff;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #444;
+  }
+
+  small {
+    color: #8b94a5;
+    display: block;
+    margin-bottom: 16px;
+  }
 `;
 
 const UploadButton = styled.button`
-  margin-top: 10px;
-  padding: 10px 20px;
+  background-color: #eef1f5;
+  color: #495057;
+  border: 1px solid #dde2ec;
+  padding: 10px 18px;
   border-radius: 8px;
-  background: #e9ecef;
-  border: none;
   cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background-color: #e5e8ed;
+  }
 `;
 
 const FileList = styled.div`
-  flex-grow: 1;
-  overflow-y: auto;
+  margin-top: 10px;
 `;
 
 const FileItem = styled.div`
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
+  background: #ffffff;
+  border: 1px solid #e6e8eb;
+  border-radius: 10px;
+  padding: 14px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 `;
 
 const FileInfo = styled.div`
   display: flex;
-  gap: 15px;
+  gap: 14px;
   align-items: center;
 `;
 
 const FileIcon = styled.div`
-  background: #e9ecef;
-  padding: 10px;
-  border-radius: 4px;
+  background: #eef1f5;
+  padding: 10px 12px;
+  border-radius: 6px;
   font-weight: bold;
+  color: #495057;
 `;
 
 const FileName = styled.p`
-  font-weight: bold;
+  font-weight: 600;
+  margin-bottom: 4px;
 `;
 
 const FileMeta = styled.small`
-  color: #868e96;
+  color: #8b94a5;
 `;
 
 const DeleteButton = styled.button`
   background: none;
   border: none;
+  color: #adb5bd;
   cursor: pointer;
+  font-size: 18px;
+
+  &:hover {
+    opacity: 0.6;
+  }
 `;
 
 const AnalyzeButton = styled.button`
-  margin-top: 20px;
-  padding: 15px;
-  background: #4285f4;
+  width: 100%;
+  padding: 16px 0;
+  background-color: #3b82f6;
   color: white;
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
-  font-size: 18px;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 8px 18px rgba(59,130,246,0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
 
   &:hover {
-    background: #357ae8;
+    background-color: #2563eb;
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 `;

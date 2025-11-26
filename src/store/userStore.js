@@ -5,9 +5,21 @@ import api from '../api/client';
 
 const SESSION_PING_PATH = '/user/mypage/posts/me';
 
-/* ----------------------------------------------------
-   S3 presigned download URL 생성 함수
----------------------------------------------------- */
+/* ----------------------------------------
+   presigned URL → fileKey 추출 함수
+----------------------------------------- */
+function extractKeyFromPresigned(url) {
+  try {
+    const u = new URL(url);
+    return u.pathname.replace(/^\/+/, ""); // "/image/xxx.png" → "image/xxx.png"
+  } catch (_) {
+    return url;
+  }
+}
+
+/* ----------------------------------------
+   S3 다운로드 presigned URL 생성
+----------------------------------------- */
 async function getDownloadUrl(fileKey) {
   if (!fileKey) return '';
 
@@ -24,49 +36,59 @@ async function getDownloadUrl(fileKey) {
   }
 }
 
-/* ----------------------------------------------------
-   user 객체 표준화 + fileKey → presigned URL 변환
----------------------------------------------------- */
+/* ----------------------------------------
+   핵심: user 표준화 로직
+----------------------------------------- */
 async function normalizeUserAsync(nextUser, prevUser = {}) {
-    if (!nextUser && !prevUser) return null;
+  console.log("normalize IN:", nextUser);
+  if (!nextUser) return prevUser;
+  if (!prevUser) prevUser = {};
 
-    const merged = { ...prevUser, ...nextUser };
+  const merged = { ...prevUser, ...nextUser };
 
-    // nickname 조정
-    const nickname = merged.nickname || merged.name;
-    if (nickname) {
-        merged.nickname = nickname;
-        merged.name = nickname;
-    }
+  /* nick 처리 */
+  const nickname = nextUser.nickname || nextUser.name;
+  if (nickname) {
+    merged.nickname = nickname;
+    merged.name = nickname;
+  }
 
-    // DB에서 받은 key 우선
-    const fileKey =
-        merged.profileImageKey ||
-        merged.profileImageUrl ||
-        merged.avatarUrl ||
-        "";
+  /* -------------------------------
+     이미지 관련 필드는 무조건 nextUser 우선
+  -------------------------------- */
+  let key = null;
 
-    if (fileKey) {
-        const pureKey = fileKey.includes("amazonaws.com")
-            ? extractKeyFromPresigned(fileKey)
-            : fileKey;
+  // 서버에서 받은 최신 fileKey
+  if (nextUser.profileImageKey) {
+    key = nextUser.profileImageKey;
 
-        merged.profileImageKey = pureKey;  // 서버용 key ⭐
-        merged.profileImageUrl = await getDownloadUrl(pureKey); // FE보기용 presigned
-        merged.avatarUrl = merged.profileImageUrl;
-    } else {
-        const defaultKey = "image/baseImageLocation.png";
-        merged.profileImageKey = defaultKey;
-        merged.profileImageUrl = await getDownloadUrl(defaultKey);
-        merged.avatarUrl = merged.profileImageUrl;
-    }
+  } else if (nextUser.profileImageUrl && !nextUser.profileImageUrl.startsWith("http")) {
+    key = nextUser.profileImageUrl;
 
-    return merged;
+  } else if (nextUser.avatarUrl && !nextUser.avatarUrl.startsWith("http")) {
+    key = nextUser.avatarUrl;
+  }
+
+  // 만약 nextUser가 이미지 필드를 안 보냈다면 prevUser 유지
+  if (!key) {
+    key = prevUser.profileImageKey || "image/baseImageLocation.png";
+  }
+
+  // 최신 key 적용
+  merged.profileImageKey = key;
+
+  // 새 presigned URL 생성
+  const presigned = await getDownloadUrl(key);
+  merged.profileImageUrl = presigned;
+  merged.avatarUrl = presigned;
+
+  console.log("normalized OUT:", merged);
+  return merged;
 }
 
-/* ----------------------------------------------------
-   ZUSTAND STORE
----------------------------------------------------- */
+/* ----------------------------------------
+   Zustand store
+----------------------------------------- */
 const useUserStore = create(
   persist(
     (set, get) => ({
@@ -77,23 +99,15 @@ const useUserStore = create(
       hydrated: false,
       authChecked: false,
 
-      /* ========== NAV ========== */
+      /* NAV */
       isNavOpen: false,
       openNav: () => set({ isNavOpen: true }),
       closeNav: () => set({ isNavOpen: false }),
       toggleNav: () => set((s) => ({ isNavOpen: !s.isNavOpen })),
 
-      /* ----------------------------------------------------
-         로그인 상태 반영
-         (normalizeUserAsync 사용하도록 변경)
-      ---------------------------------------------------- */
-      setLoginState: async ({
-        isLoggedIn = true,
-        user = null,
-        csrfToken = null,
-      }) => {
-        // 🔥 추가: 쿠키 세팅을 기다리게 함 (0ms도 충분하지만 안전하게 10ms)
-        await new Promise(resolve => setTimeout(resolve, 10));
+      /* 로그인 상태 반영 */
+      setLoginState: async ({ isLoggedIn = true, user = null, csrfToken = null }) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
         const newUser = await normalizeUserAsync(user, get().user);
 
         set({
@@ -103,9 +117,7 @@ const useUserStore = create(
         });
       },
 
-      /* ----------------------------------------------------
-         프로필 업데이트 (닉네임 + 프로필 이미지(fileKey))
-      ---------------------------------------------------- */
+      /* 프로필 업데이트 */
       updateProfile: async ({ nickname, avatarUrl }) => {
         try {
           if (nickname) {
@@ -119,10 +131,7 @@ const useUserStore = create(
           const res = await api.get('/user/profile/info');
           const newUserRaw = res?.data?.result;
 
-          const newUser = await normalizeUserAsync(
-            newUserRaw,
-            get().user
-          );
+          const newUser = await normalizeUserAsync(newUserRaw, get().user);
 
           set({
             user: newUser,
@@ -136,9 +145,7 @@ const useUserStore = create(
         }
       },
 
-      /* ----------------------------------------------------
-         로그아웃
-      ---------------------------------------------------- */
+      /* 로그아웃 */
       logout: async () => {
         try {
           await api.post('/user/auth/logout');
@@ -151,9 +158,7 @@ const useUserStore = create(
         });
       },
 
-      /* ----------------------------------------------------
-         앱 시작 시 로그인 상태 체크
-      ---------------------------------------------------- */
+      /* 앱 시작 시 로그인 체크 */
       bootstrapAuth: async () => {
         if (get().authChecked) return;
 
@@ -167,10 +172,7 @@ const useUserStore = create(
             res?.data?.user ||
             get().user;
 
-          const newUser = await normalizeUserAsync(
-            maybeUser,
-            get().user
-          );
+          const newUser = await normalizeUserAsync(maybeUser, get().user);
 
           set({
             isLoggedIn: !!maybeUser,

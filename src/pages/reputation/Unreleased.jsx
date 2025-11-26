@@ -99,21 +99,14 @@ function Unreleased() {
 
   return (
     <PageContainer>
-      <PageTitle>YOUR REPUTATION</PageTitle>
-      <PageSubtitle>지인에게 내 곡을 평가받으세요</PageSubtitle>
+      <PageTitle>미발매 곡 평가받기</PageTitle>
+      <PageSubtitle>음악을 업로드하면 평가 링크가 생성됩니다</PageSubtitle>
 
       <UploadPanel>
-        <UploaderHeader>
-          <div>
-            <h3>Upload files</h3>
-            <p>Select and upload the files of your choice</p>
-          </div>
-          <CloseButton>&times;</CloseButton>
-        </UploaderHeader>
 
         <FileDropZone onClick={handleChooseFile}>
           <p>Choose a file or drag & drop it here</p>
-          <small>MP3, WAV, M4A 등 50MB 이하 파일 지원</small>
+          <small>Only MP3 50MB 이하 파일 지원</small>
           <BrowseButton>Browse File</BrowseButton>
 
           <input
@@ -149,98 +142,98 @@ function Unreleased() {
   );
 }
 
-/* ------------ styled-components -------------- */
+/* ===========================
+   개선된 스타일 (완전 업그레이드 버전)
+   =========================== */
 
 const PageContainer = styled.div`
-  padding: 40px;
+  padding: 60px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: #1d2123;
+  min-height: 100vh;
+  color: #fff;
 `;
 
 const PageTitle = styled.h1`
   font-family: "Anton", sans-serif;
-  font-size: 3rem;
+  font-size: 3.4rem;
   color: #fff;
+  margin-bottom: 8px;
 `;
 
 const PageSubtitle = styled.p`
   font-family: "Quicksand", sans-serif;
-  color: #aaa;
-  margin-bottom: 30px;
+  color: #cfcfcf;
+  margin-bottom: 40px;
+  font-size: 1rem;
 `;
 
 const UploadPanel = styled.div`
-  background-color: #fff;
+  background-color: #f8fafc;
   color: #1d2123;
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 22px;
+  padding: 32px;
   width: 100%;
-  max-width: 600px;
-`;
-
-const UploaderHeader = styled.div`
+  max-width: 620px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-
-  h3 {
-    font-weight: bold;
-    font-size: 18px;
-  }
-  p {
-    color: #868e96;
-    font-size: 14px;
-  }
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #adb5bd;
-  cursor: pointer;
+  flex-direction: column;
+  gap: 26px;
 `;
 
 const FileDropZone = styled.div`
-  border: 2px dashed #dde2ec;
-  border-radius: 12px;
-  padding: 30px;
+  border: 2px dashed rgba(150, 160, 180, 0.4);
+  border-radius: 14px;
+  padding: 40px;
   text-align: center;
   cursor: pointer;
-  margin-bottom: 20px;
+  background: #ffffff;
+  transition: 0.25s ease;
+
+  &:hover {
+    background: #f3f6ff;
+    border-color: #8fa8ff;
+  }
 
   p {
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 6px;
   }
   small {
-    color: #868e96;
+    color: #8b94a5;
     display: block;
-    margin: 5px 0 15px;
+    margin-bottom: 16px;
   }
 `;
 
 const BrowseButton = styled.button`
-  background-color: #f1f3f5;
+  background-color: #eef1f5;
   color: #495057;
   border: 1px solid #dde2ec;
-  padding: 8px 15px;
+  padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.95rem;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background-color: #e5e8ed;
+  }
 `;
 
 const FileList = styled.div`
-  margin-bottom: 20px;
+  margin-top: 10px;
 `;
 
 const FileItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid #e9ecef;
+  gap: 14px;
+  padding: 14px 6px;
+  border-bottom: 1px solid #e6e8eb;
 
   &:last-child {
     border-bottom: none;
@@ -248,7 +241,7 @@ const FileItem = styled.div`
 `;
 
 const FileIcon = styled.div`
-  font-size: 24px;
+  font-size: 26px;
 `;
 
 const FileInfo = styled.div`
@@ -256,13 +249,12 @@ const FileInfo = styled.div`
 `;
 
 const FileName = styled.p`
-  font-weight: bold;
+  font-weight: 600;
+  margin-bottom: 3px;
 `;
 
 const FileMeta = styled.small`
-  color: #868e96;
-  margin: 3px 0;
-  display: block;
+  color: #7d8696;
 `;
 
 const DeleteButton = styled.button`
@@ -271,21 +263,33 @@ const DeleteButton = styled.button`
   color: #adb5bd;
   cursor: pointer;
   font-size: 18px;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.6;
+  }
 `;
 
 const UploadButton = styled.button`
-  background-color: #4285f4;
+  background-color: #3b82f6;
   color: white;
   width: 100%;
-  font-size: 18px;
-  font-weight: bold;
-  padding: 15px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 16px 0;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 8px 18px rgba(59,130,246,0.3);
+  transition: background 0.2s ease, transform 0.15s ease;
 
   &:hover {
-    background-color: #357ae8;
+    background-color: #2563eb;
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 `;
 

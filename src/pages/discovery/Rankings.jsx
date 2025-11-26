@@ -99,16 +99,15 @@ function Rankings() {
     <RankingsContainer>
       <ChartHeader>
         <HeaderContent>
-          <PlaylistTitle>Curated playlist</PlaylistTitle>
+          <PlaylistTitle>추천 플레이리스트</PlaylistTitle>
           <Top100>TOP 50</Top100>
-          <GenreTitle>KPOP HITS!</GenreTitle>
           <GenreDescription>
-            All mine, Lie again, Pretty, call me everyday, Out of time, Like a movie, Bad habit, and so much more
+            지금 가장 사랑받는 인기곡을 한곳에서 만나보세요
           </GenreDescription>
 
           <FilterRow>
             <label>
-              Genre
+              장르
               <Input
                 value={genreInput}
                 onChange={(e) => setGenreInput(e.target.value)}
@@ -116,7 +115,7 @@ function Rankings() {
               />
             </label>
             <label>
-              Market
+              국가
               <Input
                 value={market}
                 onChange={(e) => setMarket(e.target.value.toUpperCase())}
@@ -135,7 +134,7 @@ function Rankings() {
               />
             </label>
             <ReloadBtn onClick={fetchRankings} disabled={status === 'loading'}>
-              {status === 'loading' ? 'Loading…' : 'Reload'}
+              {status === 'loading' ? 'Loading…' : '불러오기'}
             </ReloadBtn>
           </FilterRow>
         </HeaderContent>
@@ -183,54 +182,239 @@ function Rankings() {
 
 export default Rankings;
 
-/* ---------- styled-components ---------- */
-const RankingsContainer = styled.div`padding: 0 40px 40px;`;
+/* ---------- styled-components (Refined) ---------- */
+
+/* 전체 컨테이너: 정렬 개선 */
+const RankingsContainer = styled.div`
+  padding: 0 40px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+`;
+
+/* 헤더 카드 */
 const ChartHeader = styled.div`
-  background-color: #609EAF; border-radius: 16px; padding: 30px;
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 40px; color: #fff;
-`;
-const HeaderContent = styled.div`max-width: 60%;`;
-const PlaylistTitle = styled.p`font-size: 14px; margin-bottom: 20px;`;
-const Top100 = styled.h1`font-family: 'Anton', sans-serif; font-size: 4rem; margin-bottom: 20px;`;
-const GenreTitle = styled.h2`font-family: 'Anton', sans-serif; font-size: 2rem; margin-bottom: 10px;`;
-const GenreDescription = styled.p`font-family: 'Quicksand', sans-serif; font-size: 14px; color: #eee; line-height: 1.5;`;
+  background-color: #5e99a9;
+  border-radius: 22px;
+  padding: 40px 40px 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 50px;
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+  gap: 20px;
+  flex-wrap: wrap;
 
+  @media (max-width: 850px) {
+    flex-direction: column;
+    text-align: center;
+  }
+`;
+
+const HeaderContent = styled.div`
+  max-width: 60%;
+
+  @media (max-width: 850px) {
+    max-width: 100%;
+  }
+`;
+
+const PlaylistTitle = styled.p`
+  font-size: 14px;
+  margin-bottom: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+`;
+
+const Top100 = styled.h1`
+  font-family: 'Anton', sans-serif;
+  font-size: 4.2rem;
+  margin-bottom: 14px;
+  line-height: 1;
+`;
+
+const GenreDescription = styled.p`
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  color: #f1f8fa;
+  line-height: 1.6;
+  margin-top: 10px;
+  opacity: 0.95;
+  max-width: 90%;
+
+  @media (max-width: 850px) {
+    max-width: 100%;
+  }
+`;
+
+/* 필터 영역 */
 const FilterRow = styled.div`
-  display:flex; gap:12px; align-items:center; margin-top:16px; flex-wrap:wrap;
-  label { display:flex; flex-direction:column; font-size:12px; color:#e9f6fb; }
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-top: 22px;
+  flex-wrap: wrap;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8f5f7;
+    margin-bottom: 6px;
+  }
 `;
+
 const Input = styled.input`
-  height:32px; padding:0 10px; border-radius:8px; border:none; margin-top:4px;
+  height: 36px;
+  width: 140px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 6px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+
+  &:focus {
+    outline: 2px solid #14363a;
+  }
 `;
+
 const ReloadBtn = styled.button`
-  height:32px; padding:0 12px; border-radius:8px; border:none; background:#1b3e45; color:#fff; cursor:pointer;
-  opacity: ${(p) => (p.disabled ? 0.7 : 1)}; margin-top: 20px;
-`;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: #14363a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 
-const PromoImage = styled.img`
-  width: 200px; height: 200px; border-radius: 12px; object-fit: cover;
-`;
-
-const InfoRow = styled.p`color:#eee; margin: 12px 4px 0;`;
-const ErrorRow = styled.p`color:#fdd; margin: 12px 4px 0;`;
-
-const SongList = styled.ul`list-style: none; padding: 0;`;
-const SongListItem = styled.li`
-  display: flex; align-items: center; margin-bottom: 20px; padding: 10px;
-  border-radius: 8px; transition: background-color 0.2s ease-in-out;
-  &:hover { background-color: #2a2f32; }
-`;
-const RankNumber = styled.span`font-size: 18px; font-weight: bold; color: #aaa; width: 40px; text-align: center;`;
-const AlbumArt = styled.img`width: 50px; height: 50px; border-radius: 8px; object-fit: cover; margin-right: 20px;`;
-const SongInfo = styled.div`display:flex; flex-direction:column; gap:2px; flex-grow: 1;`;
-const SongTitle = styled.p`font-size: 16px; font-weight: bold; color: #fff; margin:0;`;
-const ArtistName = styled.p`font-size: 14px; color: #aaa; margin:0;`;
-const Spacer = styled.span`flex:0 0 30px;`;
-const YoutubeButton = styled.a`
-  background-color: #FF0000; color: #fff; border: none; border-radius: 5px;
-  width: 30px; height: 22px; display: flex; justify-content: center; align-items: center;
-  text-decoration: none; font-size: 12px;
   opacity: ${(p) => (p.disabled ? 0.6 : 1)};
   pointer-events: ${(p) => (p.disabled ? 'none' : 'auto')};
+
+  transition: background 0.2s ease, transform 0.15s ease;
+
+  &:hover {
+    background: #1c4850;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+`;
+
+/* 프로모 이미지 */
+const PromoImage = styled.img`
+  width: 210px;
+  height: 210px;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+
+  @media (max-width: 850px) {
+    width: 160px;
+    height: 160px;
+  }
+`;
+
+/* 서브 메시지 */
+const InfoRow = styled.p`
+  color: #eee;
+  margin: 14px 4px 0;
+  font-size: 14px;
+`;
+
+const ErrorRow = styled.p`
+  color: #fbb;
+  margin: 14px 4px 0;
+  font-size: 14px;
+`;
+
+/* 리스트 */
+const SongList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+`;
+
+/* 곡 아이템 카드 */
+const SongListItem = styled.li`
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  transition: background-color 0.22s ease, transform 0.15s ease;
+  
+  &:hover {
+    background-color: #2c3336;
+    transform: translateY(-2px);
+  }
+`;
+
+const RankNumber = styled.span`
+  font-size: 20px;
+  font-weight: 700;
+  color: #c7c7c7;
+  width: 50px;
+  text-align: center;
+`;
+
+const AlbumArt = styled.img`
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-right: 18px;
+`;
+
+const SongInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+`;
+
+const SongTitle = styled.p`
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+`;
+
+const ArtistName = styled.p`
+  font-size: 14px;
+  color: #b0b0b0;
+  margin: 0;
+`;
+
+const Spacer = styled.span`
+  flex: 0 0 30px;
+`;
+
+const YoutubeButton = styled.button`
+  background-color: #FF0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+
+  box-shadow: 0 4px 12px rgba(255,0,0,0.35);
+
+  opacity: ${(p) => (p.disabled ? 0.5 : 1)};
+  pointer-events: ${(p) => (p.disabled ? 'none' : 'auto')};
+
+  transition: transform 0.15s ease;
+
+  &:active {
+    transform: scale(0.9);
+  }
 `;
