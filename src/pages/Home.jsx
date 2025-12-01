@@ -23,80 +23,80 @@ function Home() {
     <PageWrapper>
 
       {/* 🔥 1) HERO SECTION */}
-      <HeroSection>
-        <HeroText>
-          음악 속 감정을 해석하고,<br />
-          새로운 감정을 발견하세요
-        </HeroText>
+        <HeroSection>
+          <HeroText>
+            음악 속 감정을 해석하고,<br />
+            새로운 감정을 발견하세요
+          </HeroText>
 
-        <DescriptionText>
-            감정 기반 음악 분석 플랫폼<br />
-            Compassstep
-        </DescriptionText>
+          <DescriptionText>
+            감정 기반 음악 분석 플랫폼
 
-        <StartButton onClick={goToIntro}>시작하기</StartButton>
+          </DescriptionText>
+
+          <StartButton onClick={goToIntro}>시작하기</StartButton>
 
           {/*<DownArrow onClick={handleScrollDown}>▼</DownArrow>*/}
-      </HeroSection>
+        </HeroSection>
 
         {/* 🔥 2) VIDEO SECTION */}
-      <Element name="videoSection">
-        <VideoSection>
-          <VideoTitle>감정을 읽는 기술</VideoTitle>
-          <VideoSubtitle>
-            AI가 분석한 음악 감정 데이터를 시각적으로 확인하세요.
-          </VideoSubtitle>
+        <Element name="videoSection">
+          <VideoSection>
+            <VideoTitle>감정을 읽는 기술</VideoTitle>
+            <VideoSubtitle>
+              AI가 분석한 음악 감정 데이터를 시각적으로 확인하세요.
+            </VideoSubtitle>
 
-          <VideoFrame
-            autoPlay
-            muted
-            loop
-            playsInline
-            src={`${BASE_URL}Intro-Player.mp4`}
-            alt="인트로영상"
-          />
-        </VideoSection>
-      </Element>
+            <VideoFrame
+              autoPlay
+              muted
+              loop
+              playsInline
+              src={`${BASE_URL}Intro-Player.mp4`}
+              alt="인트로영상"
+            />
+          </VideoSection>
+        </Element>
 
         {/* 🔥 3) INTRO SECTION */}
-      <Element name="introSection">
-        <IntroSection>
-          <IntroTitle>당신의 음악을 더 깊게 이해하세요</IntroTitle>
+        <Element name="introSection">
+          <IntroSection>
+            <IntroTitle>당신의 음악을 더 깊게 이해하세요</IntroTitle>
 
-          <SliderContainer>
+            <SliderContainer>
 
-            <SlideCard>
-              <CardIcon src={`${BASE_URL}emotion.png`} alt="감정 분석" />
-              <CardTitle>음악 속 감정을 분석합니다</CardTitle>
-              <CardDescription>
-                AI 기반 감정 분석으로 곡의 분위기와 감정 흐름을 시각적으로 확인하세요.
-              </CardDescription>
-            </SlideCard>
+              <SlideCard>
+                <CardIcon src={`${BASE_URL}emotion.png`} alt="감정 분석" />
+                <CardTitle>음악 속 감정을 분석합니다</CardTitle>
+                <CardDescription>
+                  AI 기반 감정 분석으로 곡의 분위기와 감정 흐름을 시각적으로 확인하세요.
+                </CardDescription>
+              </SlideCard>
 
-            <SlideCard>
-              <CardIcon src={`${BASE_URL}inspi.png`} alt="영감 검색" />
-              <CardTitle>영감을 위한 레퍼런스를 찾습니다</CardTitle>
-              <CardDescription>
+              <SlideCard>
+                <CardIcon src={`${BASE_URL}inspi.png`} alt="영감 검색" />
+                <CardTitle>영감을 위한 레퍼런스를 찾습니다</CardTitle>
+                <CardDescription>
                   키워드와 감정 기반 검색으로 <br></br>
-                나만의 음악적 레퍼런스를 발견하세요.
-              </CardDescription>
-            </SlideCard>
+                  나만의 음악적 레퍼런스를 발견하세요.
+                </CardDescription>
+              </SlideCard>
 
-            <SlideCard>
-              <CardIcon src={`${BASE_URL}peer.png`} alt="평판 분석" />
-              <CardTitle>지인의 평가로 반응을 검증합니다</CardTitle>
-              <CardDescription>
+              <SlideCard>
+                <CardIcon src={`${BASE_URL}peer.png`} alt="평판 분석" />
+                <CardTitle>지인의 평가로 반응을 검증합니다</CardTitle>
+                <CardDescription>
                   지인을 초대해 의견을 모으고 <br></br> 
-                미발매곡의 반응을 미리 예측해보세요.
-              </CardDescription>
-            </SlideCard>
-          </SliderContainer>
-        </IntroSection>
+                  미발매곡의 반응을 미리 예측해보세요.
+                </CardDescription>
+              </SlideCard>
+            </SliderContainer>
+          </IntroSection>
 
           {/* 🔥 4) WHY COMPASSSTEP SECTION */}
-        <WhySection>
-            <WhyTitle>Why? <br></br>Compassstep 인가</WhyTitle>
-
+          <WhySection>
+            <WhyTitle>Compasstep이 제공하는 가치</WhyTitle>
+          {/*
             <WhyStatsWrapper>
 
               <WhyStatCard>
@@ -115,87 +115,87 @@ function Home() {
               </WhyStatCard>
 
             </WhyStatsWrapper>
-
-          <WhyContentWrapper>
+            */}
+            <WhyContentWrapper>
               {/* 왼쪽 텍스트 */}
-            <WhyTextBlock>
-              <div>
-                <BadgeContainer>
-                  <BadgeIcon src={`${BASE_URL}growth.png`} />
-                  <BadgeBox>아티스트 성장</BadgeBox>
-                </BadgeContainer>
+              <WhyTextBlock>
+                <div>
+                  <BadgeContainer>
+                    <BadgeIcon src={`${BASE_URL}growth.png`} />
+                    <BadgeBox>아티스트 성장</BadgeBox>
+                  </BadgeContainer>
 
-                <WhyDescription>
-                  아티스트가 더 성장할 수 있도록<br />
-                  창작과 커리어 성장을 가속하는 인사이트를<br />
-                  하나의 플랫폼에서 제공합니다.
-                </WhyDescription>
-              </div>
-            </WhyTextBlock>
+                  <WhyDescription>
+                    아티스트가 더 성장할 수 있도록<br />
+                    창작과 커리어 성장을 가속하는 인사이트를<br />
+                    하나의 플랫폼에서 제공합니다.
+                  </WhyDescription>
+                </div>
+              </WhyTextBlock>
 
               {/* 오른쪽 삽화 (너 PNG 넣으면 됨) */}
-            <WhyImage
+              <WhyImage
                 src={`${BASE_URL}artist.png`}  // ← 네가 넣을 PNG 파일 이름
-              alt="Compassstep illustration"
+                alt="Compassstep illustration"
             />
-          </WhyContentWrapper>
-        </WhySection>
+            </WhyContentWrapper>
+          </WhySection>
           {/* 🔥 5) TREND INSIGHT SECTION */}
-        <TrendSection>
-          <TrendContentWrapper>
+          <TrendSection>
+            <TrendContentWrapper>
 
               {/* 왼쪽: 이미지 */}
-            <TrendImage
-              src={`${BASE_URL}trend.png`}
-              alt="트렌드 분석 이미지"
-            />
+              <TrendImage
+                src={`${BASE_URL}trend.png`}
+                alt="트렌드 분석 이미지"
+              />
 
               {/* 오른쪽: 텍스트 */}
-            <TrendTextBlock>
-              <div>
-                <TrendBadgeContainer>
-                  <TrendBadgeIcon src={`${BASE_URL}popular.png`} />
-                  <TrendBadgeBox>업계 트렌드 감지</TrendBadgeBox>
-                </TrendBadgeContainer>
+              <TrendTextBlock>
+                <div>
+                  <TrendBadgeContainer>
+                    <TrendBadgeIcon src={`${BASE_URL}popular.png`} />
+                    <TrendBadgeBox>업계 트렌드 감지</TrendBadgeBox>
+                  </TrendBadgeContainer>
 
-                <TrendDescription>
+                  <TrendDescription>
                     변동성이 큰 음악 시장에서<br/>
                     아티스트가 기회를 놓치지 않도록<br/>
-                  실행 가능한 인사이트를 제공합니다.
-                </TrendDescription>
-              </div>
-            </TrendTextBlock>
-          </TrendContentWrapper>
-        </TrendSection>
+                    실행 가능한 인사이트를 제공합니다.
+                  </TrendDescription>
+                </div>
+              </TrendTextBlock>
+            </TrendContentWrapper>
+          </TrendSection>
           {/* 🔥 6) PEER FEEDBACK SECTION */}
-        <PeerSection>
-          <PeerContentWrapper>
+          <PeerSection>
+            <PeerContentWrapper>
 
               {/* 왼쪽 텍스트 */}
-            <PeerTextBlock>
-              <div>
-                <PeerBadgeContainer>
-                  <PeerBadgeIcon src={`${BASE_URL}friends.png`} />
-                  <PeerBadgeBox>지인 피드백 수집</PeerBadgeBox>
-                </PeerBadgeContainer>
+              <PeerTextBlock>
+                <div>
+                  <PeerBadgeContainer>
+                    <PeerBadgeIcon src={`${BASE_URL}friends.png`} />
+                    <PeerBadgeBox>지인 피드백 수집</PeerBadgeBox>
+                  </PeerBadgeContainer>
 
-                <PeerDescription>
+                  <PeerDescription>
                     소규모 레이블과 인디 아티스트가<br/>
                     팬층 없이도 객관적인 의견을 얻을 수 있도록<br/>
                     지인 기반 피드백 수집 기능을 제공합니다.<br/>
-                </PeerDescription>
-              </div>
-            </PeerTextBlock>
+                  </PeerDescription>
+                </div>
+              </PeerTextBlock>
 
               {/* 오른쪽 이미지 */}
-            <PeerImage
+              <PeerImage
                 src={`${BASE_URL}peerservice.png`}   // 네가 넣을 PNG 파일
-              alt="지인 피드백 수집 이미지"
-            />
+                alt="지인 피드백 수집 이미지"
+              />
 
-          </PeerContentWrapper>
-        </PeerSection>
-      </Element>
+            </PeerContentWrapper>
+          </PeerSection>
+        </Element>
     </PageWrapper>
   );
 }
@@ -216,6 +216,7 @@ const HeroSection = styled.section`
   align-items: center;
   text-align: center;
   padding-top: 50px;            /* 👈 위쪽으로 올림 */
+  padding-bottom: 40px;
 `;
 
 
@@ -278,6 +279,7 @@ const IntroSection = styled.section`
   background: #1D2123;
   padding: 120px 0 60px;
   color: white;
+  margin-bottom: 110px;
 `;
 
 const IntroTitle = styled.h2`
@@ -285,7 +287,7 @@ const IntroTitle = styled.h2`
   font-size: 2.8rem;
   color: #FACD66;
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 120px;
 `;
 
 const SliderContainer = styled.div`
@@ -346,12 +348,12 @@ const WhySection = styled.section`
 
 const WhyTitle = styled.h2`
   font-family: 'Inter', sans-serif;
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   font-weight: 700;
   color: #FFF;
-  margin-bottom: 80px;
+  margin-bottom: 120px;
 `;
-
+/*
 const WhyStatsWrapper = styled.div`
   display: flex;
   justify-content: center;
@@ -378,7 +380,7 @@ const StatLabel = styled.div`
   font-size: 1.1rem;
   color: #aaa;
 `;
-
+*/
 const WhyContentWrapper = styled.div`
   max-width: 1100px;
   margin: 0 auto;
@@ -452,6 +454,7 @@ const TrendSection = styled.section`
   background: #11181C;
   padding: 120px 20px;
   color: white;
+  margin-top: -20px;
 `;
 
 const TrendContentWrapper = styled.div`
@@ -459,7 +462,7 @@ const TrendContentWrapper = styled.div`
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 60px;
 
   @media (max-width: 900px) {
@@ -512,9 +515,11 @@ const TrendDescription = styled.p`
 `;
 
 const TrendImage = styled.img`
-  width: 250px;
+  width: 300px;
   height: auto;
   object-fit: contain;
+
+  margin-left: 180px;
 
   @media (max-width: 900px) {
     width: 260px;
