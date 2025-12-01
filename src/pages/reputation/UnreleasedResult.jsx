@@ -106,8 +106,8 @@ const ResultBox = styled.div`
 `;
 
 const Title = styled.h1`
-  font-family: 'Anton', sans-serif;
-  font-size: 2.5rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 2.0rem;
   color: #fff;
   margin-bottom: 30px;
 `;

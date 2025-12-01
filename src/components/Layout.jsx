@@ -10,14 +10,16 @@ import useUserStore from '../store/userStore.js';
 function Layout() {
   const location = useLocation();
 
+  // 기존 코드 유지 (혹시 나중에 다른 곳에서 사용할 수도 있으므로)
   const bootstrapAuth = useUserStore((s) => s.bootstrapAuth);
 
-  useEffect(() => {
-  const hasCsrf = document.cookie.includes("csrf_token");
-  if (hasCsrf) {
-    bootstrapAuth();
-  }
-}, [bootstrapAuth]);
+  // 🔥 문제의 원인이었던 bootstrapAuth 자동 실행 부분을 완전히 제거
+  // useEffect(() => {
+  //   const hasCsrf = document.cookie.includes("csrf_token");
+  //   if (hasCsrf) {
+  //     bootstrapAuth();
+  //   }
+  // }, [bootstrapAuth]);
 
   const isSpecialLayout =
     location.pathname === '/' ||
@@ -52,3 +54,5 @@ const MainContent = styled.main`
 `;
 
 export default Layout;
+
+
