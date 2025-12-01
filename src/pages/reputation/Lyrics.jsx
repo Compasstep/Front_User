@@ -70,7 +70,7 @@ function Lyrics() {
   if (loading) {
     return (
       <LoadingSpinner
-        title="LYRICS"
+        title="ANALYZE"
         time="AI가 가사를 분석하고 있습니다..."
       />
     );
@@ -80,7 +80,8 @@ function Lyrics() {
     <Wrapper>
       <Container>
         <UploadPanel>
-          <Title>💬 가사 데이터 입력</Title>
+          <Title>💬 가사 데이터 입력 💬</Title>
+          <Subtitle>가사를 업로드하면 AI가 보컬 가이드를 만들어드립니다.</Subtitle>
 
           <FileUploaderBox>
             <FileUploader onClick={handleChooseFile}>
@@ -160,12 +161,19 @@ const UploadPanel = styled.div`
 `;
 
 const Title = styled.h1`
-  font-family: "Anton", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 2.2rem;
+  text-align: center;
   color: #1d2123;
   margin-top: 6px;
-  margin-bottom: 10px;
+`;
+
+const Subtitle = styled.p`
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  color: #8e8e8e;
   text-align: center;
+  margin-top: -12px;
 `;
 
 const FileUploaderBox = styled.div`

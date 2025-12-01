@@ -455,23 +455,31 @@ const ThumbGrid = styled.div`
   }
 `;
 
+/* ---------------- pastel theme colors ---------------- */
 const themeColor = (t) =>
   t === 'pink'
-    ? '#a70063'
+    ? '#FF8BA0'
     : t === 'blue'
-    ? '#026277'
+    ? '#71C2FF'
     : t === 'orange'
-    ? '#2f4f4f'
+    ? '#FFC28C'
     : t === 'green'
-    ? '#2e003e'
-    : '#2f4f4f';
+    ? '#7CD6C3'
+    : '#9BA4B5';
 
+/* ---------------- thumbnail cards ---------------- */
 const ThumbCard = styled.article`
-  background-color: #2a2f32;
+  background-color: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(4px);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: transform 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
 
   & > header {
     background-color: ${(p) => themeColor(p.$theme)};
@@ -490,15 +498,17 @@ const ThumbTitle = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: 'Inter', sans-serif;
 `;
 
 const ThumbSubtitle = styled.p`
   margin: 0;
   font-size: 11px;
-  color: #eee;
+  color: #f2f2f2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: 'Inter', sans-serif;
 `;
 
 const ThumbBody = styled.div`
@@ -513,28 +523,33 @@ const ThumbImage = styled.img`
   aspect-ratio: 16/9;
   object-fit: cover;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 `;
 
 const ThumbDesc = styled.p`
   margin: 0;
   font-size: 12px;
-  color: #aaa;
+  color: #c7ccd1;
   line-height: 1.45;
 `;
 
 const ThumbButton = styled.a`
   align-self: flex-start;
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid #d0d5db;
-  background: #fff;
-  color: #111;
+  background: #facd66;
+  color: #1d2123;
+  font-weight: 600;
   text-decoration: none;
   font-size: 12px;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: #f0f3f5;
+    background: #ffdb85;
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 `;
 

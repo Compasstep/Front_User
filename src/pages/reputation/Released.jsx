@@ -45,7 +45,7 @@ function Released() {
 
   /** ⭐ LoadingSpinner.jsx만 사용 */
   if (status === 'loading') {
-    return <LoadingSpinner title="SEARCH" time="5s ~ 10s" />;
+    return <LoadingSpinner title="ANALYZE" time="유튜브 댓글을 분석하고 있습니다..." />;
   }
 
   return (
